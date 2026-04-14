@@ -1,26 +1,84 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-heebo);
+
+  /* Brand colors (stay the same in dark mode) */
+  --color-brand-blue: #2D3A8C;
+  --color-brand-gold: #F0A500;
+
+  /* Light-mode defaults */
+  --color-bg-soft: #F5F6FA;
+  --color-surface: #ffffff;
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --color-border: #e5e7eb;
+  --color-income: #1E7E34;
+  --color-expense: #A32D2D;
+  --color-balance-positive-fg: #27500A;
+  --color-balance-warning-fg: #633806;
+  --color-balance-danger-fg:  #791F1F;
+  --color-balance-positive-bg: #EAF3DE;
+  --color-balance-warning-bg:  #FAEEDA;
+  --color-balance-danger-bg:   #FCEBEB;
+  --color-highlight-bg: #FFF3CD;
+  --color-highlight-border: #F0A500;
+  --color-header-bg: #2D3A8C;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark-mode overrides */
+.dark {
+  --color-bg-soft: #0f172a;
+  --color-surface: #1e293b;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-border: #334155;
+  --color-income: #4ade80;
+  --color-expense: #f87171;
+  --color-balance-positive-fg: #86efac;
+  --color-balance-warning-fg: #fdba74;
+  --color-balance-danger-fg:  #fca5a5;
+  --color-balance-positive-bg: rgba(34, 197, 94, 0.15);
+  --color-balance-warning-bg:  rgba(234, 179, 8, 0.15);
+  --color-balance-danger-bg:   rgba(239, 68, 68, 0.15);
+  --color-highlight-bg: #4a3d13;
+  --color-highlight-border: #F0A500;
+  --color-header-bg: #1e2a6b;
+}
+
+html, body {
+  font-family: var(--font-heebo), Arial, Helvetica, sans-serif;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 150ms ease;
+}
+
+/* Make sure numerical columns render LTR inside RTL layout */
+.num {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+}
+
+/* Remove spin buttons from number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Respect RTL for any shadcn-style popovers etc. (used later) */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
 }
