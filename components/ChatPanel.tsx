@@ -51,31 +51,6 @@ export function ChatPanel() {
     if (saved) setAuthor(saved);
   }, []);
 
-  // When the chat is open, push the main content leftward (in RTL this means physical left)
-  // so the drawer doesn't cover the table.
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const main = document.body;
-    if (open) {
-      // Only apply on screens wide enough to accommodate the push
-      const apply = () => {
-        if (window.innerWidth >= 900) {
-          main.style.paddingLeft = '376px';
-        } else {
-          main.style.paddingLeft = '';
-        }
-      };
-      apply();
-      window.addEventListener('resize', apply);
-      return () => {
-        window.removeEventListener('resize', apply);
-        main.style.paddingLeft = '';
-      };
-    } else {
-      main.style.paddingLeft = '';
-    }
-  }, [open]);
-
   // Load chat messages
   const loadMessages = useCallback(async () => {
     setLoading(true);
@@ -234,7 +209,7 @@ export function ChatPanel() {
 
       {/* Chat drawer */}
       {open && (
-        <div className="fixed bottom-20 right-4 z-40 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-7rem)] bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-2xl flex flex-col">
+        <div className="fixed bottom-20 right-4 z-40 w-[280px] max-w-[calc(100vw-2rem)] h-[420px] max-h-[calc(100vh-7rem)] bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-2xl flex flex-col">
           <div className="bg-[#2D3A8C] text-white px-3 py-2 rounded-t-lg flex items-center justify-between">
             <div className="font-bold">צ'אט פנימי</div>
             <div className="flex items-center gap-2">
