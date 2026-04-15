@@ -24,6 +24,9 @@ export function ChatPanel() {
   const [namePromptValue, setNamePromptValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Filter messages by search query (matches text OR author OR date)
@@ -134,6 +137,44 @@ export function ChatPanel() {
     }
   };
 
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelection = (rowNumber: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowNumber)) next.delete(rowNumber);
+      else next.add(rowNumber);
+      return next;
+    });
+  };
+
+  const bulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`למחוק ${selectedIds.size} הודעות?`)) return;
+
+    setBulkDeleting(true);
+    try {
+      // Sort descending so deleting rows doesn't shift row numbers for subsequent deletes
+      const rows = Array.from(selectedIds).sort((a, b) => b - a);
+      for (const row of rows) {
+        try {
+          const res = await fetch(`/api/chat/${row}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error(`delete ${row} failed`);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      setSelectedIds(new Set());
+      setSelectMode(false);
+      await loadMessages();
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const formatTime = (iso: string) => {
     try {
       const d = new Date(iso);
@@ -178,6 +219,15 @@ export function ChatPanel() {
           <div className="bg-[#2D3A8C] text-white px-3 py-2 rounded-t-lg flex items-center justify-between">
             <div className="font-bold">צ'אט פנימי</div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSelectMode}
+                className={`text-sm rounded px-1.5 ${
+                  selectMode ? 'bg-[#F0A500]' : 'hover:bg-white/10'
+                }`}
+                title={selectMode ? 'בטל בחירה' : 'בחר הודעות למחיקה'}
+              >
+                ☑
+              </button>
               <button
                 onClick={() => setSearchOpen((s) => !s)}
                 className="text-sm hover:bg-white/10 rounded px-1.5"
@@ -254,44 +304,79 @@ export function ChatPanel() {
             )}
             {filteredMessages.map((m) => {
               const isMe = author && m.author === author;
+              const isSelected = selectedIds.has(m.rowNumber);
               return (
                 <div
                   key={m.rowNumber}
-                  className={`group max-w-[85%] ${isMe ? 'ms-auto' : 'me-auto'}`}
+                  className={`group max-w-[85%] flex items-start gap-2 ${
+                    isMe ? 'ms-auto flex-row-reverse' : 'me-auto'
+                  }`}
                 >
+                  {selectMode && (
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelection(m.rowNumber)}
+                      className="w-4 h-4 mt-2 flex-shrink-0 cursor-pointer"
+                    />
+                  )}
                   <div
-                    className={`px-3 py-2 rounded-lg ${
-                      isMe
-                        ? 'bg-[#2D3A8C] text-white'
-                        : 'bg-white dark:bg-slate-700 dark:text-slate-100 border dark:border-slate-600'
-                    }`}
+                    onClick={selectMode ? () => toggleSelection(m.rowNumber) : undefined}
+                    className={`${selectMode ? 'cursor-pointer' : ''}`}
                   >
-                    {!isMe && (
-                      <div className="text-xs font-bold mb-1 text-[#2D3A8C] dark:text-[#F0A500]">
-                        {m.author}
-                      </div>
-                    )}
-                    <div className="whitespace-pre-wrap break-words">{m.text}</div>
                     <div
-                      className={`text-[10px] mt-1 ${
-                        isMe ? 'text-blue-200' : 'text-slate-400 dark:text-slate-400'
+                      className={`px-3 py-2 rounded-lg ${
+                        isSelected ? 'ring-2 ring-[#F0A500]' : ''
+                      } ${
+                        isMe
+                          ? 'bg-[#2D3A8C] text-white'
+                          : 'bg-white dark:bg-slate-700 dark:text-slate-100 border dark:border-slate-600'
                       }`}
                     >
-                      {formatTime(m.timestamp)}
+                      {!isMe && (
+                        <div className="text-xs font-bold mb-1 text-[#2D3A8C] dark:text-[#F0A500]">
+                          {m.author}
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap break-words">{m.text}</div>
+                      <div
+                        className={`text-[10px] mt-1 ${
+                          isMe ? 'text-blue-200' : 'text-slate-400 dark:text-slate-400'
+                        }`}
+                      >
+                        {formatTime(m.timestamp)}
+                      </div>
                     </div>
+                    {isMe && !selectMode && (
+                      <button
+                        onClick={() => deleteMessage(m.rowNumber)}
+                        className="opacity-0 group-hover:opacity-100 text-[10px] text-red-600 hover:underline mt-0.5 me-1"
+                      >
+                        מחק
+                      </button>
+                    )}
                   </div>
-                  {isMe && (
-                    <button
-                      onClick={() => deleteMessage(m.rowNumber)}
-                      className="opacity-0 group-hover:opacity-100 text-[10px] text-red-600 hover:underline mt-0.5 me-1"
-                    >
-                      מחק
-                    </button>
-                  )}
                 </div>
               );
             })}
           </div>
+
+          {selectMode && (
+            <div className="border-t dark:border-slate-700 p-2 bg-amber-50 dark:bg-amber-900/30 flex items-center justify-between text-sm">
+              <span className="text-slate-700 dark:text-slate-200">
+                {selectedIds.size > 0
+                  ? `נבחרו ${selectedIds.size} הודעות`
+                  : 'לחץ על הודעה כדי לבחור'}
+              </span>
+              <button
+                onClick={bulkDelete}
+                disabled={selectedIds.size === 0 || bulkDeleting}
+                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-xs"
+              >
+                {bulkDeleting ? 'מוחק...' : `🗑 מחק ${selectedIds.size || ''}`}
+              </button>
+            </div>
+          )}
 
           <div className="border-t dark:border-slate-700 p-2 flex gap-1">
             <textarea
