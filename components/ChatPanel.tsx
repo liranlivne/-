@@ -12,8 +12,30 @@ interface ChatMessage {
 const AUTHOR_KEY = 'tzrim-chat-author';
 const POLL_MS = 15_000;
 
+const OPEN_STATE_KEY = 'tzrim-chat-open';
+
 export function ChatPanel() {
   const [open, setOpen] = useState(false);
+
+  // Restore last open/closed state, defaulting to open on wide screens
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem(OPEN_STATE_KEY);
+    if (saved === 'true') {
+      setOpen(true);
+    } else if (saved === 'false') {
+      setOpen(false);
+    } else {
+      // First visit: default open on wide screens
+      if (window.innerWidth >= 900) setOpen(true);
+    }
+  }, []);
+
+  // Persist preference on change
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(OPEN_STATE_KEY, String(open));
+  }, [open]);
   const [author, setAuthor] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
