@@ -217,7 +217,7 @@ export async function updateTransaction(
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${TZRIM_SHEET}!A${rowNumber}:J${rowNumber}`,
+    range: `${TZRIM_SHEET}!A${rowNumber}:K${rowNumber}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [transactionToRow(t)] },
   });
@@ -228,7 +228,7 @@ export async function clearRow(rowNumber: number): Promise<void> {
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.clear({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${TZRIM_SHEET}!A${rowNumber}:J${rowNumber}`,
+    range: `${TZRIM_SHEET}!A${rowNumber}:K${rowNumber}`,
   });
 }
 
