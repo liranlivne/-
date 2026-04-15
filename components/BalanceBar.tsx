@@ -47,67 +47,71 @@ export function BalanceBar({
 
   return (
     <div className="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700 sticky top-[40px] sm:top-[56px] z-20">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center gap-2 sm:gap-3">
-        {/* Opening balance */}
-        <div
-          className="rounded px-2 sm:px-3 py-1 sm:py-2 flex items-center gap-1.5 sm:gap-2"
-          style={{ background: openingColor.bg, color: openingColor.fg }}
-        >
-          <span className="text-[10px] sm:text-xs font-medium opacity-80">יתרה נוכחית</span>
-          {editing ? (
-            <>
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                className="num w-24 sm:w-32 px-2 py-0.5 bg-white dark:bg-slate-700 dark:text-white rounded border dark:border-slate-600 text-slate-900 text-sm"
-                disabled={saving}
-              />
-              <button
-                onClick={save}
-                disabled={saving}
-                className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
-              >
-                {saving ? '...' : 'שמור'}
-              </button>
-              <button
-                onClick={() => {
-                  setEditing(false);
-                  setValue(String(opening.balance));
-                }}
-                disabled={saving}
-                className="px-2 py-0.5 bg-slate-500 text-white rounded text-xs"
-              >
-                בטל
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="num font-bold text-base sm:text-lg">{formatShekel(opening.balance)}</span>
-              <button
-                onClick={() => setEditing(true)}
-                className="text-[10px] sm:text-xs opacity-70 hover:opacity-100 underline"
-              >
-                ערוך
-              </button>
-            </>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex flex-col items-center sm:flex-row sm:items-center gap-2 sm:gap-3">
+        {/* Balance badges - centered on mobile */}
+        <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+          {/* Opening balance */}
+          <div
+            className="rounded px-2 sm:px-3 py-1 sm:py-2 flex items-center gap-1.5 sm:gap-2"
+            style={{ background: openingColor.bg, color: openingColor.fg }}
+          >
+            <span className="text-[10px] sm:text-xs font-medium opacity-80">יתרה נוכחית</span>
+            {editing ? (
+              <>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  className="num w-24 sm:w-32 px-2 py-0.5 bg-white dark:bg-slate-700 dark:text-white rounded border dark:border-slate-600 text-slate-900 text-sm"
+                  disabled={saving}
+                />
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="px-2 py-0.5 bg-green-600 text-white rounded text-xs"
+                >
+                  {saving ? '...' : 'שמור'}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditing(false);
+                    setValue(String(opening.balance));
+                  }}
+                  disabled={saving}
+                  className="px-2 py-0.5 bg-slate-500 text-white rounded text-xs"
+                >
+                  בטל
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="num font-bold text-base sm:text-lg">{formatShekel(opening.balance)}</span>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="text-[10px] sm:text-xs opacity-70 hover:opacity-100 underline"
+                >
+                  ערוך
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* End-of-period projection */}
+          {endColor && endOfPeriodBalance !== undefined && (
+            <div
+              className="rounded px-2 sm:px-3 py-1 sm:py-2 flex items-center gap-1.5 sm:gap-2"
+              style={{ background: endColor.bg, color: endColor.fg }}
+            >
+              <span className="text-[10px] sm:text-xs font-medium opacity-80">צפי לסוף החודש</span>
+              <span className="num font-bold text-base sm:text-lg">{formatShekel(endOfPeriodBalance)}</span>
+            </div>
           )}
         </div>
 
-        {/* End-of-period projection */}
-        {endColor && endOfPeriodBalance !== undefined && (
-          <div
-            className="rounded px-2 sm:px-3 py-1 sm:py-2 flex items-center gap-1.5 sm:gap-2"
-            style={{ background: endColor.bg, color: endColor.fg }}
-          >
-            <span className="text-[10px] sm:text-xs font-medium opacity-80">צפי לסוף החודש</span>
-            <span className="num font-bold text-base sm:text-lg">{formatShekel(endOfPeriodBalance)}</span>
-          </div>
-        )}
+        <div className="hidden sm:block flex-1" />
 
-        <div className="flex-1" />
-
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        {/* Action buttons - centered on mobile */}
+        <div className="flex flex-wrap justify-center sm:justify-end gap-1.5 sm:gap-2">
           <button
             onClick={onAddFuture}
             className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] transition font-medium text-xs sm:text-base"

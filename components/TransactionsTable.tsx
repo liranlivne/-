@@ -46,7 +46,7 @@ export function TransactionsTable({
   }, [showPast, pastTransactions.length]);
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 lg:mr-0 lg:pr-[304px]">
+    <div className="max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3 lg:mr-0 lg:pr-[304px]">
       {/* Past section header */}
       <div className="mb-2">
         <button
@@ -149,7 +149,7 @@ function TableView({
       </div>
 
       {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
+      <div className="md:hidden space-y-0">
         {rows.map((t) => (
           <MobileCard
             key={t.rowNumber}
@@ -385,11 +385,11 @@ function MobileCard({
         if (selectMode) onToggleSelect(t.rowNumber);
         else onRowClick(t);
       }}
-      className={`rounded border dark:border-slate-700 p-3 cursor-pointer flex gap-2 ${
+      className={`border-b dark:border-slate-700 px-3 py-2 cursor-pointer flex gap-2 ${
         selected
-          ? 'bg-blue-100 dark:bg-blue-900/50 ring-2 ring-[#2D3A8C]'
+          ? 'bg-blue-100 dark:bg-blue-900/50 ring-1 ring-inset ring-[#2D3A8C]'
           : highlighted
-          ? 'bg-[#FFF3CD] dark:bg-yellow-900/40 border-[#F0A500]'
+          ? 'bg-[#FFF3CD] dark:bg-yellow-900/40'
           : 'bg-white dark:bg-slate-800'
       }`}
     >
@@ -398,13 +398,14 @@ function MobileCard({
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(t.rowNumber)}
-          className="w-5 h-5 mt-1 flex-shrink-0"
+          className="w-4 h-4 mt-1 flex-shrink-0"
           onClick={(e) => e.stopPropagation()}
         />
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-start mb-1">
-          <div className="font-medium flex items-center gap-1.5">
+        {/* Top row: category + date + amounts */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="font-medium text-sm truncate flex items-center gap-1">
             {t.category}
             {t.imageUrl && (
               <button
@@ -412,61 +413,61 @@ function MobileCard({
                   e.stopPropagation();
                   setPreviewOpen(true);
                 }}
-                className="text-base"
+                className="text-sm"
                 title="הצג קובץ מצורף"
               >
                 📎
               </button>
             )}
           </div>
-          <div className="text-xs text-slate-500 num">{formatDateHe(t.date)}</div>
-        </div>
-        {previewOpen && t.imageUrl && (
-          <ImageLightbox
-            url={t.imageUrl}
-            isPdf={t.imageUrl.toLowerCase().endsWith('.pdf')}
-            onClose={() => setPreviewOpen(false)}
-          />
-        )}
-        {t.description && (
-          <div className="text-sm text-slate-600 dark:text-slate-300 mb-2">{t.description}</div>
-        )}
-        <div className="flex justify-between items-center">
-          <div className="flex gap-3 text-sm">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {t.expense ? (
+              <span className="num text-[color:var(--color-expense)] font-bold text-sm">
+                {formatShekel(t.expense)}-
+              </span>
+            ) : null}
             {t.income ? (
-              <span className="num text-[color:var(--color-income)] font-medium">
+              <span className="num text-[color:var(--color-income)] font-bold text-sm">
                 +{formatShekel(t.income)}
               </span>
             ) : null}
-            {t.expense ? (
-              <span className="num text-[color:var(--color-expense)] font-medium">
-                -{formatShekel(t.expense)}
-              </span>
-            ) : null}
           </div>
-          {showBalance && balance !== undefined && (
-            <div
-              className="num font-bold text-sm"
-              style={balColor ? { color: balColor.fg } : undefined}
-            >
-              {formatShekel(balance)}
-            </div>
-          )}
         </div>
-        <div className="flex justify-between items-center mt-2 pt-2 border-t text-xs text-slate-500">
-          <span>{t.frequency}</span>
-          <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={t.done || t.status === 'past'}
-              disabled={t.status === 'past'}
-              onChange={() => onToggleDone(t)}
-              className="w-4 h-4"
-            />
-            בוצע
-          </label>
+        {/* Bottom row: date + frequency + balance + done */}
+        <div className="flex items-center justify-between mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="num">{formatDateHe(t.date)}</span>
+            {t.frequency && <span className="text-[10px]">{t.frequency}</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            {showBalance && balance !== undefined && (
+              <span
+                className="num font-bold"
+                style={balColor ? { color: balColor.fg } : undefined}
+              >
+                {formatShekel(balance)}
+              </span>
+            )}
+            <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5">
+              <input
+                type="checkbox"
+                checked={t.done || t.status === 'past'}
+                disabled={t.status === 'past'}
+                onChange={() => onToggleDone(t)}
+                className="w-3.5 h-3.5"
+              />
+              <span className="text-[10px]">בוצע</span>
+            </label>
+          </div>
         </div>
       </div>
+      {previewOpen && t.imageUrl && (
+        <ImageLightbox
+          url={t.imageUrl}
+          isPdf={t.imageUrl.toLowerCase().endsWith('.pdf')}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }

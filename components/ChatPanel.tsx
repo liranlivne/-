@@ -17,17 +17,23 @@ const OPEN_STATE_KEY = 'tzrim-chat-open';
 export function ChatPanel() {
   const [open, setOpen] = useState(false);
 
-  // Restore last open/closed state, defaulting to open on wide screens
+  // Always start closed on mobile; on desktop restore saved preference (default open on first visit)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const isMobile = window.innerWidth < 640;
+    if (isMobile) {
+      // Always start closed on mobile, regardless of saved preference
+      setOpen(false);
+      return;
+    }
     const saved = localStorage.getItem(OPEN_STATE_KEY);
     if (saved === 'true') {
       setOpen(true);
     } else if (saved === 'false') {
       setOpen(false);
     } else {
-      // First visit: default open on wide screens
-      if (window.innerWidth >= 900) setOpen(true);
+      // First visit on desktop: default open
+      setOpen(true);
     }
   }, []);
 
