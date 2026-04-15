@@ -385,7 +385,7 @@ function MobileCard({
         if (selectMode) onToggleSelect(t.rowNumber);
         else onRowClick(t);
       }}
-      className={`border-b dark:border-slate-700 px-3 py-2 cursor-pointer flex gap-2 ${
+      className={`border-b dark:border-slate-700 px-2 py-1.5 cursor-pointer flex items-center gap-1.5 ${
         selected
           ? 'bg-blue-100 dark:bg-blue-900/50 ring-1 ring-inset ring-[#2D3A8C]'
           : highlighted
@@ -398,69 +398,54 @@ function MobileCard({
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(t.rowNumber)}
-          className="w-4 h-4 mt-1 flex-shrink-0"
+          className="w-3.5 h-3.5 flex-shrink-0"
           onClick={(e) => e.stopPropagation()}
         />
       )}
-      <div className="flex-1 min-w-0">
-        {/* Top row: category + date + amounts */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="font-medium text-sm truncate flex items-center gap-1">
-            {t.category}
-            {t.imageUrl && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPreviewOpen(true);
-                }}
-                className="text-sm"
-                title="הצג קובץ מצורף"
-              >
-                📎
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {t.expense ? (
-              <span className="num text-[color:var(--color-expense)] font-bold text-sm">
-                {formatShekel(t.expense)}-
-              </span>
-            ) : null}
-            {t.income ? (
-              <span className="num text-[color:var(--color-income)] font-bold text-sm">
-                +{formatShekel(t.income)}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        {/* Bottom row: date + frequency + balance + done */}
-        <div className="flex items-center justify-between mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <span className="num">{formatDateHe(t.date)}</span>
-            {t.frequency && <span className="text-[10px]">{t.frequency}</span>}
-          </div>
-          <div className="flex items-center gap-2">
-            {showBalance && balance !== undefined && (
-              <span
-                className="num font-bold"
-                style={balColor ? { color: balColor.fg } : undefined}
-              >
-                {formatShekel(balance)}
-              </span>
-            )}
-            <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-0.5">
-              <input
-                type="checkbox"
-                checked={t.done || t.status === 'past'}
-                disabled={t.status === 'past'}
-                onChange={() => onToggleDone(t)}
-                className="w-3.5 h-3.5"
-              />
-              <span className="text-[10px]">בוצע</span>
-            </label>
-          </div>
-        </div>
-      </div>
+      {/* Single horizontal row: date | category | amount | balance | done */}
+      <span className="num text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0 w-[52px] text-center">{formatDateHe(t.date)}</span>
+      <span className="text-xs font-medium truncate min-w-0 flex-1 flex items-center gap-0.5">
+        {t.category}
+        {t.imageUrl && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewOpen(true);
+            }}
+            className="text-xs"
+            title="📎"
+          >
+            📎
+          </button>
+        )}
+      </span>
+      {t.expense ? (
+        <span className="num text-[color:var(--color-expense)] font-bold text-xs flex-shrink-0">
+          {formatShekel(t.expense)}-
+        </span>
+      ) : t.income ? (
+        <span className="num text-[color:var(--color-income)] font-bold text-xs flex-shrink-0">
+          {formatShekel(t.income)}
+        </span>
+      ) : <span className="flex-shrink-0 w-12" />}
+      {showBalance && balance !== undefined && (
+        <span
+          className="num font-bold text-[11px] flex-shrink-0 w-[60px] text-center"
+          style={balColor ? { color: balColor.fg } : undefined}
+        >
+          {formatShekel(balance)}
+        </span>
+      )}
+      {t.frequency && <span className="text-[10px] text-slate-400 flex-shrink-0">{t.frequency === 'חודשי' ? 'ח' : t.frequency === 'דו-חודשי' ? 'דח' : t.frequency}</span>}
+      <label onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+        <input
+          type="checkbox"
+          checked={t.done || t.status === 'past'}
+          disabled={t.status === 'past'}
+          onChange={() => onToggleDone(t)}
+          className="w-3.5 h-3.5"
+        />
+      </label>
       {previewOpen && t.imageUrl && (
         <ImageLightbox
           url={t.imageUrl}
