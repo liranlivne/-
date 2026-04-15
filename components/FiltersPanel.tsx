@@ -11,7 +11,6 @@ export interface FiltersState {
   amountMax: string;
   text: string;
   type: 'all' | 'income' | 'expense';
-  doneStatus: 'all' | 'done' | 'pending';
   /** When true, show only rows that are "recently updated" (yellow-highlighted). */
   onlyRecent: boolean;
 }
@@ -24,7 +23,6 @@ export const emptyFilters: FiltersState = {
   amountMax: '',
   text: '',
   type: 'all',
-  doneStatus: 'all',
   onlyRecent: false,
 };
 
@@ -46,7 +44,6 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot }: Props
     filters.amountMax ||
     filters.text ||
     filters.type !== 'all' ||
-    filters.doneStatus !== 'all' ||
     filters.onlyRecent;
 
   const clear = () => onChange(emptyFilters);
@@ -150,18 +147,6 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot }: Props
                 placeholder="∞"
               />
             </label>
-            <label className="flex flex-col">
-              <span className="text-xs text-slate-600 dark:text-slate-400 mb-0.5">סטטוס</span>
-              <select
-                value={filters.doneStatus}
-                onChange={(e) => update({ doneStatus: e.target.value as FiltersState['doneStatus'] })}
-                className="px-2 py-1 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              >
-                <option value="all">הכל</option>
-                <option value="pending">טרם בוצעו</option>
-                <option value="done">בוצעו</option>
-              </select>
-            </label>
             <label className="flex items-center gap-2 md:col-span-2 bg-[#FFF3CD] dark:bg-yellow-900/30 border border-[#F0A500] rounded px-3 py-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -202,9 +187,6 @@ export function applyFilters<
 
     if (f.type === 'income' && !t.income) return false;
     if (f.type === 'expense' && !t.expense) return false;
-
-    if (f.doneStatus === 'done' && !t.done) return false;
-    if (f.doneStatus === 'pending' && t.done) return false;
 
     if (f.onlyRecent && !isRecentlyUpdated(t.updatedAt)) return false;
 

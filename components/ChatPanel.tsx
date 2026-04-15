@@ -22,7 +22,25 @@ export function ChatPanel() {
   const [lastSeenCount, setLastSeenCount] = useState<number>(0);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [namePromptValue, setNamePromptValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Filter messages by search query (matches text OR author OR date)
+  const filteredMessages = searchQuery.trim()
+    ? messages.filter((m) => {
+        const q = searchQuery.toLowerCase();
+        if (m.text.toLowerCase().includes(q)) return true;
+        if (m.author.toLowerCase().includes(q)) return true;
+        // Date search: user might type "15/4" or "אפריל"
+        try {
+          const d = new Date(m.timestamp);
+          const dateStr = d.toLocaleDateString('he-IL');
+          if (dateStr.includes(q)) return true;
+        } catch {}
+        return false;
+      })
+    : messages;
 
   // Load author from localStorage on mount
   useEffect(() => {
@@ -160,6 +178,13 @@ export function ChatPanel() {
           <div className="bg-[#2D3A8C] text-white px-3 py-2 rounded-t-lg flex items-center justify-between">
             <div className="font-bold">צ'אט פנימי</div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSearchOpen((s) => !s)}
+                className="text-sm hover:bg-white/10 rounded px-1.5"
+                title="חיפוש"
+              >
+                🔍
+              </button>
               {author ? (
                 <button
                   onClick={requestAuthorName}
@@ -182,6 +207,27 @@ export function ChatPanel() {
             </div>
           </div>
 
+          {searchOpen && (
+            <div className="border-b dark:border-slate-700 p-2 bg-white dark:bg-slate-800 flex gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="חפש הודעה / שם / תאריך..."
+                autoFocus
+                className="flex-1 px-2 py-1 text-sm border dark:border-slate-600 dark:bg-slate-700 rounded"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  נקה
+                </button>
+              )}
+            </div>
+          )}
+
           <div
             ref={listRef}
             className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#F5F6FA] dark:bg-slate-900 text-sm"
@@ -196,7 +242,17 @@ export function ChatPanel() {
                 כתבו את ההודעה הראשונה למטה.
               </div>
             )}
-            {messages.map((m) => {
+            {searchQuery && filteredMessages.length === 0 && messages.length > 0 && (
+              <div className="text-center text-slate-400 text-xs py-8">
+                לא נמצאו תוצאות עבור "{searchQuery}"
+              </div>
+            )}
+            {searchQuery && filteredMessages.length > 0 && (
+              <div className="text-center text-xs text-slate-500 dark:text-slate-400 pb-2 border-b dark:border-slate-700">
+                {filteredMessages.length} תוצאות
+              </div>
+            )}
+            {filteredMessages.map((m) => {
               const isMe = author && m.author === author;
               return (
                 <div

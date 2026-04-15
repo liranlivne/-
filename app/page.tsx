@@ -22,7 +22,16 @@ import {
 } from '@/lib/apiClient';
 import { computeRunningBalances } from '@/lib/balance';
 import { todayIso, addMonthsIso } from '@/lib/dateUtils';
-import { pushUndo, performUndo, canUndo, peekLabel, subscribeUndo } from '@/lib/undoStack';
+import {
+  pushUndo,
+  performUndo,
+  performRedo,
+  canUndo,
+  canRedo,
+  peekUndoLabel,
+  peekRedoLabel,
+  subscribeHistory,
+} from '@/lib/undoStack';
 
 const POLL_INTERVAL_MS = 30_000; // 30 seconds
 
@@ -35,7 +44,6 @@ function hasActiveFilter(f: FiltersState): boolean {
     f.amountMax ||
     f.text ||
     f.type !== 'all' ||
-    f.doneStatus !== 'all' ||
     f.onlyRecent
   );
 }
@@ -50,8 +58,6 @@ function describeFilters(f: FiltersState): string {
     parts.push(`סכום: ${f.amountMin || '0'}—${f.amountMax || '∞'}`);
   if (f.type === 'income') parts.push('רק הכנסות');
   if (f.type === 'expense') parts.push('רק הוצאות');
-  if (f.doneStatus === 'done') parts.push('רק שבוצעו');
-  if (f.doneStatus === 'pending') parts.push('רק שטרם בוצעו');
   if (f.onlyRecent) parts.push('רק עדכונים אחרונים');
   return 'סינון: ' + parts.join(' | ');
 }
@@ -108,9 +114,9 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, [reload, modalOpen, catsOpen]);
 
-  // Re-render when undo stack changes
+  // Re-render when undo/redo stacks change
   useEffect(() => {
-    return subscribeUndo(() => setUndoVersion((v) => v + 1));
+    return subscribeHistory(() => setUndoVersion((v) => v + 1));
   }, []);
 
   const showToast = useCallback((msg: string) => {
@@ -132,20 +138,49 @@ export default function HomePage() {
     }
   }, [reload, showToast]);
 
-  // ---------- Ctrl+Z handler ----------
+  const doRedo = useCallback(async () => {
+    const snap = snapshotRef.current;
+    if (!snap) return;
+    try {
+      const label = await performRedo(snap.transactions);
+      if (label) {
+        showToast(`בוצע מחדש: ${label}`);
+        await reload(true);
+      }
+    } catch (err) {
+      alert('שגיאה בביצוע מחדש: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  }, [reload, showToast]);
+
+  // ---------- Ctrl+Z / Ctrl+Y handler ----------
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-        const target = e.target as HTMLElement;
-        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      const key = e.key.toLowerCase();
+
+      // Ctrl+Z or Cmd+Z = undo
+      if (key === 'z' && !e.shiftKey) {
         e.preventDefault();
         doUndo();
+        return;
+      }
+
+      // Ctrl+Y or Cmd+Shift+Z = redo
+      if (key === 'y' || (key === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        doRedo();
+        return;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [doUndo]);
+  }, [doUndo, doRedo]);
 
   // ---------- Derived state ----------
 
@@ -186,11 +221,12 @@ export default function HomePage() {
   }) => {
     if (editing) {
       const prev = editing;
+      const prevStatus = prev.status === 'opening' ? 'future' : prev.status;
       await updateTransactionApi(editing.rowNumber, data);
       pushUndo({
         kind: 'update',
         rowNumber: editing.rowNumber,
-        previous: {
+        before: {
           date: prev.date,
           category: prev.category,
           description: prev.description,
@@ -198,7 +234,17 @@ export default function HomePage() {
           expense: prev.expense,
           frequency: prev.frequency,
           done: prev.done,
-          status: prev.status === 'opening' ? 'future' : prev.status,
+          status: prevStatus,
+        },
+        after: {
+          date: data.date,
+          category: data.category,
+          description: data.description,
+          income: data.income,
+          expense: data.expense,
+          frequency: data.frequency,
+          done: prev.done,
+          status: prevStatus,
         },
         label: `עדכון "${prev.category}"`,
       });
@@ -211,12 +257,14 @@ export default function HomePage() {
       pushUndo({
         kind: 'create',
         createdRowNumber: res.rowNumber,
-        createdData: {
+        data: {
           date: data.date,
           category: data.category,
           description: data.description,
           income: data.income,
           expense: data.expense,
+          frequency: data.frequency,
+          status: createAsPast ? 'past' : 'future',
         },
         label: createAsPast
           ? `הוספת "${data.category}" לעבר`
@@ -235,7 +283,8 @@ export default function HomePage() {
     await deleteTransactionApi(editing.rowNumber);
     pushUndo({
       kind: 'delete',
-      previous: {
+      originalRowNumber: prev.rowNumber,
+      data: {
         date: prev.date,
         category: prev.category,
         description: prev.description,
@@ -255,15 +304,17 @@ export default function HomePage() {
   const handleToggleDone = async (t: Transaction) => {
     if (t.status === 'past') return; // already done
     try {
-      const res = await markDoneApi(t.rowNumber, todayIso());
+      const execDate = todayIso();
+      const res = await markDoneApi(t.rowNumber, execDate);
       pushUndo({
         kind: 'done',
         rowNumber: t.rowNumber,
-        previous: {
+        before: {
           date: res.previousState.date,
           status: res.previousState.status as 'future' | 'past',
           done: res.previousState.done,
         },
+        executionDate: execDate,
         createdRowNumber: res.createdRowNumber,
         createdData: res.createdRowNumber
           ? {
@@ -277,6 +328,7 @@ export default function HomePage() {
               description: t.description,
               income: t.income,
               expense: t.expense,
+              frequency: t.frequency,
             }
           : undefined,
         label: `סימון "${t.category}" כבוצע`,
@@ -294,7 +346,8 @@ export default function HomePage() {
     await updateOpeningBalanceApi(value);
     pushUndo({
       kind: 'balance',
-      previousBalance: prevBalance,
+      before: prevBalance,
+      after: value,
       label: 'עדכון יתרת פתיחה',
     });
     showToast('יתרת פתיחה עודכנה');
@@ -307,7 +360,8 @@ export default function HomePage() {
     await replaceCategoriesApi(list);
     pushUndo({
       kind: 'categories',
-      previousList: prev,
+      before: prev,
+      after: list,
       label: 'עדכון קטגוריות',
     });
     showToast('הקטגוריות עודכנו');
@@ -401,17 +455,29 @@ export default function HomePage() {
         />
       )}
 
-      {/* Undo indicator */}
-      {canUndo() && (
-        <div className="fixed bottom-4 left-4 z-40">
-          <button
-            onClick={doUndo}
-            className="bg-slate-800 text-white px-4 py-2 rounded-full shadow-lg hover:bg-slate-900 text-sm flex items-center gap-2"
-            title="Ctrl+Z"
-          >
-            ↶ בטל: {peekLabel()}
-            <span className="text-xs opacity-60">Ctrl+Z</span>
-          </button>
+      {/* Undo / Redo indicators */}
+      {(canUndo() || canRedo()) && (
+        <div className="fixed bottom-4 left-4 z-40 flex gap-2">
+          {canUndo() && (
+            <button
+              onClick={doUndo}
+              className="bg-slate-800 text-white px-3 py-2 rounded-full shadow-lg hover:bg-slate-900 text-sm flex items-center gap-2"
+              title="Ctrl+Z"
+            >
+              ↶ בטל: {peekUndoLabel()}
+              <span className="text-xs opacity-60">Ctrl+Z</span>
+            </button>
+          )}
+          {canRedo() && (
+            <button
+              onClick={doRedo}
+              className="bg-[#F0A500] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#d49300] text-sm flex items-center gap-2"
+              title="Ctrl+Y"
+            >
+              ↷ בצע מחדש: {peekRedoLabel()}
+              <span className="text-xs opacity-60">Ctrl+Y</span>
+            </button>
+          )}
         </div>
       )}
 

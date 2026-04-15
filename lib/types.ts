@@ -20,6 +20,7 @@ export interface Transaction {
   done: boolean;
   updatedAt: string | null; // ISO timestamp of last update
   status: TransactionStatus;
+  imageUrl: string | null;  // URL of attached image (if any)
 }
 
 /**

@@ -17,7 +17,7 @@ const TZRIM_SHEET = 'תזרים';
 const CATEGORIES_SHEET = 'קטגוריות';
 const CHAT_SHEET = 'צאט';
 
-// Columns A..J  →  indexes 0..9
+// Columns A..K  →  indexes 0..10
 const COL = {
   DATE: 0,
   CATEGORY: 1,
@@ -29,9 +29,10 @@ const COL = {
   DONE: 7,
   UPDATED_AT: 8,
   STATUS: 9,
+  IMAGE_URL: 10,
 } as const;
 
-const TZRIM_RANGE = `${TZRIM_SHEET}!A1:J`;
+const TZRIM_RANGE = `${TZRIM_SHEET}!A1:K`;
 const CATEGORIES_RANGE = `${CATEGORIES_SHEET}!A1:A`;
 
 let cachedClient: sheets_v4.Sheets | null = null;
@@ -144,6 +145,7 @@ export async function readSnapshot(): Promise<SheetSnapshot> {
       done: parseBool(row[COL.DONE]),
       updatedAt: (row[COL.UPDATED_AT] as string) || null,
       status: parseStatus(row[COL.STATUS]),
+      imageUrl: String(row[COL.IMAGE_URL] ?? '').trim() || null,
     });
   }
 
@@ -169,6 +171,7 @@ function transactionToRow(t: {
   done: boolean;
   updatedAt: string | null;
   status: TransactionStatus;
+  imageUrl?: string | null;
 }): (string | number | boolean)[] {
   return [
     isoToSheetDate(t.date),
@@ -181,6 +184,7 @@ function transactionToRow(t: {
     t.done,
     t.updatedAt ?? '',
     statusToSheet(t.status),
+    t.imageUrl ?? '',
   ];
 }
 
@@ -193,7 +197,7 @@ export async function appendTransaction(
 
   const resp = await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${TZRIM_SHEET}!A:J`,
+    range: `${TZRIM_SHEET}!A:K`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values },
