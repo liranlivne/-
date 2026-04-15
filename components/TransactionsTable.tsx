@@ -13,6 +13,9 @@ interface Props {
   runningBalances: Map<number, number>;
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
+  selectMode: boolean;
+  selectedRows: Set<number>;
+  onToggleSelect: (rowNumber: number) => void;
 }
 
 export function TransactionsTable({
@@ -21,6 +24,9 @@ export function TransactionsTable({
   runningBalances,
   onRowClick,
   onToggleDone,
+  selectMode,
+  selectedRows,
+  onToggleSelect,
 }: Props) {
   const [showPast, setShowPast] = useState(false);
   const pastScrollRef = useRef<HTMLDivElement>(null);
@@ -68,6 +74,9 @@ export function TransactionsTable({
             onRowClick={onRowClick}
             onToggleDone={onToggleDone}
             showBalanceCol={false}
+            selectMode={selectMode}
+            selectedRows={selectedRows}
+            onToggleSelect={onToggleSelect}
           />
         </div>
       )}
@@ -88,6 +97,9 @@ export function TransactionsTable({
         onRowClick={onRowClick}
         onToggleDone={onToggleDone}
         showBalanceCol={true}
+        selectMode={selectMode}
+        selectedRows={selectedRows}
+        onToggleSelect={onToggleSelect}
       />
     </div>
   );
@@ -99,12 +111,18 @@ function TableView({
   onRowClick,
   onToggleDone,
   showBalanceCol,
+  selectMode,
+  selectedRows,
+  onToggleSelect,
 }: {
   rows: Transaction[];
   runningBalances: Map<number, number>;
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
+  selectMode: boolean;
+  selectedRows: Set<number>;
+  onToggleSelect: (rowNumber: number) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -124,6 +142,9 @@ function TableView({
           onRowClick={onRowClick}
           onToggleDone={onToggleDone}
           showBalanceCol={showBalanceCol}
+          selectMode={selectMode}
+          selectedRows={selectedRows}
+          onToggleSelect={onToggleSelect}
         />
       </div>
 
@@ -137,6 +158,9 @@ function TableView({
             onRowClick={onRowClick}
             onToggleDone={onToggleDone}
             showBalance={showBalanceCol}
+            selectMode={selectMode}
+            selected={selectedRows.has(t.rowNumber)}
+            onToggleSelect={onToggleSelect}
           />
         ))}
       </div>
@@ -150,18 +174,25 @@ function DesktopGrid({
   onRowClick,
   onToggleDone,
   showBalanceCol,
+  selectMode,
+  selectedRows,
+  onToggleSelect,
 }: {
   rows: Transaction[];
   runningBalances: Map<number, number>;
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
+  selectMode: boolean;
+  selectedRows: Set<number>;
+  onToggleSelect: (rowNumber: number) => void;
 }) {
   // Grid template columns (visual order in RTL = logical order, since grid respects dir)
-  // Order: date | category | description | income | expense | balance | frequency | done
-  const cols = showBalanceCol
+  // Order: [select?] date | category | description | income | expense | balance | frequency | done
+  const baseCols = showBalanceCol
     ? '95px 140px minmax(120px,1fr) 120px 120px 130px 90px 60px'
     : '95px 140px minmax(120px,1fr) 120px 120px 90px 60px';
+  const cols = selectMode ? `40px ${baseCols}` : baseCols;
 
   return (
     <div>
@@ -170,6 +201,26 @@ function DesktopGrid({
         className="grid bg-[#2D3A8C] text-white text-sm font-medium"
         style={{ gridTemplateColumns: cols }}
       >
+        {selectMode && (
+          <div className="px-2 py-2 text-center">
+            <input
+              type="checkbox"
+              checked={rows.length > 0 && rows.every((r) => selectedRows.has(r.rowNumber))}
+              onChange={() => {
+                const allSelected = rows.every((r) => selectedRows.has(r.rowNumber));
+                for (const r of rows) {
+                  if (allSelected) {
+                    if (selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
+                  } else {
+                    if (!selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
+                  }
+                }
+              }}
+              className="w-4 h-4"
+              title="סמן/בטל הכל"
+            />
+          </div>
+        )}
         <div className="px-2 py-2 text-center">תאריך</div>
         <div className="px-2 py-2 text-right">קטגוריה</div>
         <div className="px-2 py-2 text-right">תיאור</div>
@@ -190,6 +241,9 @@ function DesktopGrid({
           onToggleDone={onToggleDone}
           showBalanceCol={showBalanceCol}
           cols={cols}
+          selectMode={selectMode}
+          selected={selectedRows.has(t.rowNumber)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </div>
@@ -203,6 +257,9 @@ function DesktopGridRow({
   onToggleDone,
   showBalanceCol,
   cols,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   t: Transaction;
   balance: number | undefined;
@@ -210,6 +267,9 @@ function DesktopGridRow({
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
   cols: string;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: (rowNumber: number) => void;
 }) {
   const highlighted = isRecentlyUpdated(t.updatedAt);
   const balColor = balance !== undefined ? getBalanceColor(balance) : null;
@@ -218,9 +278,14 @@ function DesktopGridRow({
 
   return (
     <div
-      onClick={() => onRowClick(t)}
+      onClick={() => {
+        if (selectMode) onToggleSelect(t.rowNumber);
+        else onRowClick(t);
+      }}
       className={`grid text-sm border-t dark:border-slate-700 cursor-pointer transition items-center ${
-        highlighted
+        selected
+          ? 'bg-blue-100 dark:bg-blue-900/50 ring-1 ring-[#2D3A8C] ring-inset'
+          : highlighted
           ? 'bg-[#FFF3CD] dark:bg-yellow-900/40'
           : todayRow
           ? 'bg-blue-50 dark:bg-blue-900/30'
@@ -228,6 +293,16 @@ function DesktopGridRow({
       }`}
       style={{ gridTemplateColumns: cols }}
     >
+      {selectMode && (
+        <div className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(t.rowNumber)}
+            className="w-4 h-4 cursor-pointer"
+          />
+        </div>
+      )}
       <div className="px-2 py-2 whitespace-nowrap num text-center">{formatDateHe(t.date)}</div>
       <div className="px-2 py-2 truncate flex items-center gap-1.5">
         <span className="truncate">{t.category}</span>
@@ -287,12 +362,18 @@ function MobileCard({
   onRowClick,
   onToggleDone,
   showBalance,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   t: Transaction;
   balance: number | undefined;
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   showBalance: boolean;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: (rowNumber: number) => void;
 }) {
   const highlighted = isRecentlyUpdated(t.updatedAt);
   const balColor = balance !== undefined ? getBalanceColor(balance) : null;
@@ -300,73 +381,91 @@ function MobileCard({
 
   return (
     <div
-      onClick={() => onRowClick(t)}
-      className={`rounded border dark:border-slate-700 p-3 cursor-pointer ${
-        highlighted
+      onClick={() => {
+        if (selectMode) onToggleSelect(t.rowNumber);
+        else onRowClick(t);
+      }}
+      className={`rounded border dark:border-slate-700 p-3 cursor-pointer flex gap-2 ${
+        selected
+          ? 'bg-blue-100 dark:bg-blue-900/50 ring-2 ring-[#2D3A8C]'
+          : highlighted
           ? 'bg-[#FFF3CD] dark:bg-yellow-900/40 border-[#F0A500]'
           : 'bg-white dark:bg-slate-800'
       }`}
     >
-      <div className="flex justify-between items-start mb-1">
-        <div className="font-medium flex items-center gap-1.5">
-          {t.category}
-          {t.imageUrl && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreviewOpen(true);
-              }}
-              className="text-base"
-              title="הצג קובץ מצורף"
-            >
-              📎
-            </button>
-          )}
-        </div>
-        <div className="text-xs text-slate-500 num">{formatDateHe(t.date)}</div>
-      </div>
-      {previewOpen && t.imageUrl && (
-        <ImageLightbox
-          url={t.imageUrl}
-          isPdf={t.imageUrl.toLowerCase().endsWith('.pdf')}
-          onClose={() => setPreviewOpen(false)}
+      {selectMode && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(t.rowNumber)}
+          className="w-5 h-5 mt-1 flex-shrink-0"
+          onClick={(e) => e.stopPropagation()}
         />
       )}
-      {t.description && <div className="text-sm text-slate-600 dark:text-slate-300 mb-2">{t.description}</div>}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-3 text-sm">
-          {t.income ? (
-            <span className="num text-[color:var(--color-income)] font-medium">
-              +{formatShekel(t.income)}
-            </span>
-          ) : null}
-          {t.expense ? (
-            <span className="num text-[color:var(--color-expense)] font-medium">
-              -{formatShekel(t.expense)}
-            </span>
-          ) : null}
-        </div>
-        {showBalance && balance !== undefined && (
-          <div
-            className="num font-bold text-sm"
-            style={balColor ? { color: balColor.fg } : undefined}
-          >
-            {formatShekel(balance)}
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-start mb-1">
+          <div className="font-medium flex items-center gap-1.5">
+            {t.category}
+            {t.imageUrl && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreviewOpen(true);
+                }}
+                className="text-base"
+                title="הצג קובץ מצורף"
+              >
+                📎
+              </button>
+            )}
           </div>
-        )}
-      </div>
-      <div className="flex justify-between items-center mt-2 pt-2 border-t text-xs text-slate-500">
-        <span>{t.frequency}</span>
-        <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-          <input
-            type="checkbox"
-            checked={t.done || t.status === 'past'}
-            disabled={t.status === 'past'}
-            onChange={() => onToggleDone(t)}
-            className="w-4 h-4"
+          <div className="text-xs text-slate-500 num">{formatDateHe(t.date)}</div>
+        </div>
+        {previewOpen && t.imageUrl && (
+          <ImageLightbox
+            url={t.imageUrl}
+            isPdf={t.imageUrl.toLowerCase().endsWith('.pdf')}
+            onClose={() => setPreviewOpen(false)}
           />
-          בוצע
-        </label>
+        )}
+        {t.description && (
+          <div className="text-sm text-slate-600 dark:text-slate-300 mb-2">{t.description}</div>
+        )}
+        <div className="flex justify-between items-center">
+          <div className="flex gap-3 text-sm">
+            {t.income ? (
+              <span className="num text-[color:var(--color-income)] font-medium">
+                +{formatShekel(t.income)}
+              </span>
+            ) : null}
+            {t.expense ? (
+              <span className="num text-[color:var(--color-expense)] font-medium">
+                -{formatShekel(t.expense)}
+              </span>
+            ) : null}
+          </div>
+          {showBalance && balance !== undefined && (
+            <div
+              className="num font-bold text-sm"
+              style={balColor ? { color: balColor.fg } : undefined}
+            >
+              {formatShekel(balance)}
+            </div>
+          )}
+        </div>
+        <div className="flex justify-between items-center mt-2 pt-2 border-t text-xs text-slate-500">
+          <span>{t.frequency}</span>
+          <label onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={t.done || t.status === 'past'}
+              disabled={t.status === 'past'}
+              onChange={() => onToggleDone(t)}
+              className="w-4 h-4"
+            />
+            בוצע
+          </label>
+        </div>
       </div>
     </div>
   );

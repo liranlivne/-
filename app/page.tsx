@@ -11,6 +11,7 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { ExportButton } from '@/components/ExportButton';
 import { ChatPanel } from '@/components/ChatPanel';
 import { BankImportModal } from '@/components/BankImportModal';
+import { BulkActionBar } from '@/components/BulkActionBar';
 import { buildCsv, downloadCsv, defaultCsvFilename, printTransactions } from '@/lib/export';
 import {
   fetchSnapshot,
@@ -74,6 +75,8 @@ export default function HomePage() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [createAsPast, setCreateAsPast] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [catsOpen, setCatsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [undoVersion, setUndoVersion] = useState(0);
@@ -356,6 +359,42 @@ export default function HomePage() {
     await reload(true);
   };
 
+  const handleBulkDelete = async () => {
+    if (!snapshot || selectedRows.size === 0) return;
+    // Sort rows descending so deleting doesn't shift indexes for subsequent deletes
+    const rows = Array.from(selectedRows).sort((a, b) => b - a);
+    let successCount = 0;
+    for (const row of rows) {
+      try {
+        await deleteTransactionApi(row);
+        successCount++;
+      } catch (err) {
+        console.error('Failed to delete row', row, err);
+      }
+    }
+    showToast(`נמחקו ${successCount} שורות`);
+    setSelectedRows(new Set());
+    setSelectMode(false);
+    await reload(true);
+  };
+
+  const handleBulkChangeCategory = async (newCategory: string) => {
+    if (!snapshot || selectedRows.size === 0) return;
+    let successCount = 0;
+    for (const row of selectedRows) {
+      try {
+        await updateTransactionApi(row, { category: newCategory });
+        successCount++;
+      } catch (err) {
+        console.error('Failed to update row', row, err);
+      }
+    }
+    showToast(`${successCount} שורות עודכנו לקטגוריה "${newCategory}"`);
+    setSelectedRows(new Set());
+    setSelectMode(false);
+    await reload(true);
+  };
+
   const handleBankImport = async (
     rows: Array<{
       date: string;
@@ -435,28 +474,44 @@ export default function HomePage() {
             onChange={setFilters}
             categories={snapshot.categories}
             rightSlot={
-              <ExportButton
-                hasFilter={hasActiveFilter(filters)}
-                onExportCsv={() => {
-                  const csv = buildCsv(
-                    filtered.past,
-                    filtered.future,
-                    filtered.runningBalances,
-                    snapshot.openingBalance
-                  );
-                  downloadCsv(csv, defaultCsvFilename());
-                  showToast('הקובץ הורד');
-                }}
-                onPrint={() => {
-                  printTransactions(
-                    filtered.past,
-                    filtered.future,
-                    filtered.runningBalances,
-                    snapshot.openingBalance,
-                    describeFilters(filters)
-                  );
-                }}
-              />
+              <>
+                <button
+                  onClick={() => {
+                    setSelectMode((prev) => !prev);
+                    setSelectedRows(new Set());
+                  }}
+                  className={`px-3 py-1 text-sm rounded border dark:border-slate-600 ${
+                    selectMode
+                      ? 'bg-[#F0A500] text-white border-[#F0A500]'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                  title="בחר מספר שורות לביצוע פעולות מרובות"
+                >
+                  {selectMode ? '✕ סגור בחירה' : '☑ בחירה מרובה'}
+                </button>
+                <ExportButton
+                  hasFilter={hasActiveFilter(filters)}
+                  onExportCsv={() => {
+                    const csv = buildCsv(
+                      filtered.past,
+                      filtered.future,
+                      filtered.runningBalances,
+                      snapshot.openingBalance
+                    );
+                    downloadCsv(csv, defaultCsvFilename());
+                    showToast('הקובץ הורד');
+                  }}
+                  onPrint={() => {
+                    printTransactions(
+                      filtered.past,
+                      filtered.future,
+                      filtered.runningBalances,
+                      snapshot.openingBalance,
+                      describeFilters(filters)
+                    );
+                  }}
+                />
+              </>
             }
           />
         </>
@@ -486,6 +541,16 @@ export default function HomePage() {
             setModalOpen(true);
           }}
           onToggleDone={handleToggleDone}
+          selectMode={selectMode}
+          selectedRows={selectedRows}
+          onToggleSelect={(rowNumber) => {
+            setSelectedRows((prev) => {
+              const next = new Set(prev);
+              if (next.has(rowNumber)) next.delete(rowNumber);
+              else next.add(rowNumber);
+              return next;
+            });
+          }}
         />
       )}
 
@@ -552,6 +617,20 @@ export default function HomePage() {
             onImport={handleBankImport}
           />
         </>
+      )}
+
+      {/* Bulk actions bar */}
+      {selectMode && snapshot && (
+        <BulkActionBar
+          count={selectedRows.size}
+          categories={snapshot.categories}
+          onCancel={() => {
+            setSelectMode(false);
+            setSelectedRows(new Set());
+          }}
+          onDelete={handleBulkDelete}
+          onChangeCategory={handleBulkChangeCategory}
+        />
       )}
 
       {/* Chat panel (floating) */}

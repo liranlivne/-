@@ -24,10 +24,10 @@ export function ChatPanel() {
   const [namePromptValue, setNamePromptValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const selectMode = selectedIds.size > 0;
 
   // Filter messages by search query (matches text OR author OR date)
   const filteredMessages = searchQuery.trim()
@@ -50,6 +50,31 @@ export function ChatPanel() {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(AUTHOR_KEY) : '';
     if (saved) setAuthor(saved);
   }, []);
+
+  // When the chat is open, push the main content leftward (in RTL this means physical left)
+  // so the drawer doesn't cover the table.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const main = document.body;
+    if (open) {
+      // Only apply on screens wide enough to accommodate the push
+      const apply = () => {
+        if (window.innerWidth >= 900) {
+          main.style.paddingLeft = '376px';
+        } else {
+          main.style.paddingLeft = '';
+        }
+      };
+      apply();
+      window.addEventListener('resize', apply);
+      return () => {
+        window.removeEventListener('resize', apply);
+        main.style.paddingLeft = '';
+      };
+    } else {
+      main.style.paddingLeft = '';
+    }
+  }, [open]);
 
   // Load chat messages
   const loadMessages = useCallback(async () => {
@@ -137,11 +162,6 @@ export function ChatPanel() {
     }
   };
 
-  const toggleSelectMode = () => {
-    setSelectMode((prev) => !prev);
-    setSelectedIds(new Set());
-  };
-
   const toggleSelection = (rowNumber: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -168,7 +188,6 @@ export function ChatPanel() {
         }
       }
       setSelectedIds(new Set());
-      setSelectMode(false);
       await loadMessages();
     } finally {
       setBulkDeleting(false);
@@ -219,15 +238,6 @@ export function ChatPanel() {
           <div className="bg-[#2D3A8C] text-white px-3 py-2 rounded-t-lg flex items-center justify-between">
             <div className="font-bold">צ'אט פנימי</div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={toggleSelectMode}
-                className={`text-sm rounded px-1.5 ${
-                  selectMode ? 'bg-[#F0A500]' : 'hover:bg-white/10'
-                }`}
-                title={selectMode ? 'בטל בחירה' : 'בחר הודעות למחיקה'}
-              >
-                ☑
-              </button>
               <button
                 onClick={() => setSearchOpen((s) => !s)}
                 className="text-sm hover:bg-white/10 rounded px-1.5"
@@ -303,58 +313,40 @@ export function ChatPanel() {
               </div>
             )}
             {filteredMessages.map((m) => {
-              const isMe = author && m.author === author;
+              const isMe = !!(author && m.author === author);
               const isSelected = selectedIds.has(m.rowNumber);
+              // Only own messages are selectable (since only those are deletable)
+              const isSelectable = isMe;
               return (
                 <div
                   key={m.rowNumber}
-                  className={`group max-w-[85%] flex items-start gap-2 ${
-                    isMe ? 'ms-auto flex-row-reverse' : 'me-auto'
-                  }`}
+                  className={`max-w-[85%] ${isMe ? 'ms-auto' : 'me-auto'}`}
                 >
-                  {selectMode && (
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelection(m.rowNumber)}
-                      className="w-4 h-4 mt-2 flex-shrink-0 cursor-pointer"
-                    />
-                  )}
                   <div
-                    onClick={selectMode ? () => toggleSelection(m.rowNumber) : undefined}
-                    className={`${selectMode ? 'cursor-pointer' : ''}`}
+                    onClick={
+                      isSelectable ? () => toggleSelection(m.rowNumber) : undefined
+                    }
+                    className={`px-3 py-2 rounded-lg transition ${
+                      isSelectable ? 'cursor-pointer' : ''
+                    } ${isSelected ? 'ring-2 ring-[#F0A500]' : ''} ${
+                      isMe
+                        ? 'bg-[#2D3A8C] text-white'
+                        : 'bg-white dark:bg-slate-700 dark:text-slate-100 border dark:border-slate-600'
+                    }`}
                   >
+                    {!isMe && (
+                      <div className="text-xs font-bold mb-1 text-[#2D3A8C] dark:text-[#F0A500]">
+                        {m.author}
+                      </div>
+                    )}
+                    <div className="whitespace-pre-wrap break-words">{m.text}</div>
                     <div
-                      className={`px-3 py-2 rounded-lg ${
-                        isSelected ? 'ring-2 ring-[#F0A500]' : ''
-                      } ${
-                        isMe
-                          ? 'bg-[#2D3A8C] text-white'
-                          : 'bg-white dark:bg-slate-700 dark:text-slate-100 border dark:border-slate-600'
+                      className={`text-[10px] mt-1 ${
+                        isMe ? 'text-blue-200' : 'text-slate-400 dark:text-slate-400'
                       }`}
                     >
-                      {!isMe && (
-                        <div className="text-xs font-bold mb-1 text-[#2D3A8C] dark:text-[#F0A500]">
-                          {m.author}
-                        </div>
-                      )}
-                      <div className="whitespace-pre-wrap break-words">{m.text}</div>
-                      <div
-                        className={`text-[10px] mt-1 ${
-                          isMe ? 'text-blue-200' : 'text-slate-400 dark:text-slate-400'
-                        }`}
-                      >
-                        {formatTime(m.timestamp)}
-                      </div>
+                      {formatTime(m.timestamp)}
                     </div>
-                    {isMe && !selectMode && (
-                      <button
-                        onClick={() => deleteMessage(m.rowNumber)}
-                        className="opacity-0 group-hover:opacity-100 text-[10px] text-red-600 hover:underline mt-0.5 me-1"
-                      >
-                        מחק
-                      </button>
-                    )}
                   </div>
                 </div>
               );
