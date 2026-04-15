@@ -58,6 +58,15 @@ body {
   transition: background-color 150ms ease;
 }
 
+/* Reserve space on the physical right for the floating chat drawer.
+   Applied only on wide screens; on mobile the chat opens as a fullwidth panel.
+   This keeps the table visible even when the chat is open. */
+@media (min-width: 900px) {
+  body {
+    padding-right: 304px;
+  }
+}
+
 /* Make sure numerical columns render LTR inside RTL layout */
 .num {
   direction: ltr;
