@@ -290,20 +290,16 @@ export function ChatPanel() {
             {filteredMessages.map((m) => {
               const isMe = !!(author && m.author === author);
               const isSelected = selectedIds.has(m.rowNumber);
-              // Only own messages are selectable (since only those are deletable)
-              const isSelectable = isMe;
               return (
                 <div
                   key={m.rowNumber}
                   className={`max-w-[85%] ${isMe ? 'ms-auto' : 'me-auto'}`}
                 >
                   <div
-                    onClick={
-                      isSelectable ? () => toggleSelection(m.rowNumber) : undefined
-                    }
-                    className={`px-3 py-2 rounded-lg transition ${
-                      isSelectable ? 'cursor-pointer' : ''
-                    } ${isSelected ? 'ring-2 ring-[#F0A500]' : ''} ${
+                    onClick={() => toggleSelection(m.rowNumber)}
+                    className={`px-3 py-2 rounded-lg transition cursor-pointer ${
+                      isSelected ? 'ring-2 ring-[#F0A500]' : ''
+                    } ${
                       isMe
                         ? 'bg-[#2D3A8C] text-white'
                         : 'bg-white dark:bg-slate-700 dark:text-slate-100 border dark:border-slate-600'
