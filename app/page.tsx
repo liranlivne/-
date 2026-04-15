@@ -444,78 +444,81 @@ export default function HomePage() {
 
   return (
     <>
-      <Header
-        onOpenCategories={() => setCatsOpen(true)}
-        onRefresh={() => reload(true)}
-        lastUpdated={lastUpdated}
-        isLoading={refreshing}
-      />
+      {/* Mobile: entire top bar is one sticky block. Desktop: each section sticks individually */}
+      <div className="sticky top-0 z-30 sm:contents">
+        <Header
+          onOpenCategories={() => setCatsOpen(true)}
+          onRefresh={() => reload(true)}
+          lastUpdated={lastUpdated}
+          isLoading={refreshing}
+        />
 
-      {snapshot && (
-        <>
-          <BalanceBar
-            opening={snapshot.openingBalance}
-            endOfPeriodBalance={endOfMonthBalance}
-            onUpdateOpening={handleUpdateOpening}
-            onAddFuture={() => {
-              setEditing(null);
-              setCreateAsPast(false);
-              setModalOpen(true);
-            }}
-            onAddPast={() => {
-              setEditing(null);
-              setCreateAsPast(true);
-              setModalOpen(true);
-            }}
-            onBankImport={() => setBankImportOpen(true)}
-          />
-          <FiltersPanel
-            filters={filters}
-            onChange={setFilters}
-            categories={snapshot.categories}
-            rightSlot={
-              <>
-                <button
-                  onClick={() => {
-                    setSelectMode((prev) => !prev);
-                    setSelectedRows(new Set());
-                  }}
-                  className={`px-3 py-1 text-sm rounded border dark:border-slate-600 ${
-                    selectMode
-                      ? 'bg-[#F0A500] text-white border-[#F0A500]'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
-                  title="בחר מספר שורות לביצוע פעולות מרובות"
-                >
-                  {selectMode ? '✕ סגור בחירה' : '☑ בחירה מרובה'}
-                </button>
-                <ExportButton
-                  hasFilter={hasActiveFilter(filters)}
-                  onExportCsv={() => {
-                    const csv = buildCsv(
-                      filtered.past,
-                      filtered.future,
-                      filtered.runningBalances,
-                      snapshot.openingBalance
-                    );
-                    downloadCsv(csv, defaultCsvFilename());
-                    showToast('הקובץ הורד');
-                  }}
-                  onPrint={() => {
-                    printTransactions(
-                      filtered.past,
-                      filtered.future,
-                      filtered.runningBalances,
-                      snapshot.openingBalance,
-                      describeFilters(filters)
-                    );
-                  }}
-                />
-              </>
-            }
-          />
-        </>
-      )}
+        {snapshot && (
+          <>
+            <BalanceBar
+              opening={snapshot.openingBalance}
+              endOfPeriodBalance={endOfMonthBalance}
+              onUpdateOpening={handleUpdateOpening}
+              onAddFuture={() => {
+                setEditing(null);
+                setCreateAsPast(false);
+                setModalOpen(true);
+              }}
+              onAddPast={() => {
+                setEditing(null);
+                setCreateAsPast(true);
+                setModalOpen(true);
+              }}
+              onBankImport={() => setBankImportOpen(true)}
+            />
+            <FiltersPanel
+              filters={filters}
+              onChange={setFilters}
+              categories={snapshot.categories}
+              rightSlot={
+                <>
+                  <button
+                    onClick={() => {
+                      setSelectMode((prev) => !prev);
+                      setSelectedRows(new Set());
+                    }}
+                    className={`px-3 py-1 text-sm rounded border dark:border-slate-600 ${
+                      selectMode
+                        ? 'bg-[#F0A500] text-white border-[#F0A500]'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                    title="בחר מספר שורות לביצוע פעולות מרובות"
+                  >
+                    {selectMode ? '✕ סגור בחירה' : '☑ בחירה מרובה'}
+                  </button>
+                  <ExportButton
+                    hasFilter={hasActiveFilter(filters)}
+                    onExportCsv={() => {
+                      const csv = buildCsv(
+                        filtered.past,
+                        filtered.future,
+                        filtered.runningBalances,
+                        snapshot.openingBalance
+                      );
+                      downloadCsv(csv, defaultCsvFilename());
+                      showToast('הקובץ הורד');
+                    }}
+                    onPrint={() => {
+                      printTransactions(
+                        filtered.past,
+                        filtered.future,
+                        filtered.runningBalances,
+                        snapshot.openingBalance,
+                        describeFilters(filters)
+                      );
+                    }}
+                  />
+                </>
+              }
+            />
+          </>
+        )}
+      </div>
 
       {loading && (
         <div className="flex-1 flex items-center justify-center">

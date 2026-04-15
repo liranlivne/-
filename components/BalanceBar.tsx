@@ -46,7 +46,7 @@ export function BalanceBar({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700 sm:sticky sm:top-[56px] z-20">
+    <div className="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700 sm:sticky sm:top-[56px] sm:z-20">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex flex-col items-center sm:flex-row sm:items-center gap-2 sm:gap-3">
         {/* Balance badges - centered on mobile */}
         <div className="flex flex-wrap justify-center sm:justify-start gap-2">
