@@ -51,12 +51,12 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot }: Props
   const update = (patch: Partial<FiltersState>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 sticky top-[124px] z-10">
-      <div className="max-w-7xl mx-auto px-4 py-2">
-        <div className="flex items-center gap-2">
+    <div className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 sticky top-[88px] sm:top-[124px] z-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => setOpen((o) => !o)}
-            className="px-3 py-1 text-sm border dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700"
+            className="px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm border dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700"
           >
             {open ? '▲ סגור סינונים' : '▼ סינונים'}
             {hasAny && <span className="mr-2 bg-[#F0A500] text-white rounded-full px-1.5 text-xs">●</span>}
@@ -68,7 +68,7 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot }: Props
             placeholder="חיפוש בתיאור..."
             value={filters.text}
             onChange={(e) => update({ text: e.target.value })}
-            className="flex-1 px-3 py-1 text-sm border dark:border-slate-600 dark:bg-slate-700 rounded"
+            className="flex-1 px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm border dark:border-slate-600 dark:bg-slate-700 rounded"
           />
 
           {hasAny && (
