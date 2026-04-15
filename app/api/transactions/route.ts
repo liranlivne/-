@@ -11,7 +11,10 @@ export const revalidate = 0;
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as TransactionInput & { status?: 'future' | 'past' };
+    const body = (await request.json()) as TransactionInput & {
+      status?: 'future' | 'past';
+      imageUrl?: string | null;
+    };
     const nowIso = new Date().toISOString();
 
     const rowNumber = await appendTransaction({
@@ -25,6 +28,7 @@ export async function POST(request: NextRequest) {
       done: false,
       updatedAt: nowIso,
       status: body.status ?? 'future',
+      imageUrl: body.imageUrl ?? null,
     });
 
     return NextResponse.json({ ok: true, rowNumber });

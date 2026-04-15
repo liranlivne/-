@@ -23,6 +23,7 @@ export async function PUT(
     const body = (await request.json()) as TransactionInput & {
       status?: 'future' | 'past';
       done?: boolean;
+      imageUrl?: string | null;
     };
 
     // Read current state to preserve fields not in the payload
@@ -45,6 +46,7 @@ export async function PUT(
       done: body.done ?? existing.done,
       updatedAt: nowIso,
       status: body.status ?? existing.status,
+      imageUrl: body.imageUrl !== undefined ? body.imageUrl : existing.imageUrl,
     });
 
     return NextResponse.json({ ok: true });

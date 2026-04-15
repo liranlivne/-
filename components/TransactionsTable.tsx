@@ -5,6 +5,7 @@ import type { Transaction } from '@/lib/types';
 import { formatDateHe, isToday, todayIso } from '@/lib/dateUtils';
 import { formatShekel, getBalanceColor } from '@/lib/balance';
 import { isRecentlyUpdated } from '@/lib/highlight';
+import { ImageLightbox } from './ImageUploader';
 
 interface Props {
   pastTransactions: Transaction[];
@@ -213,6 +214,7 @@ function DesktopGridRow({
   const highlighted = isRecentlyUpdated(t.updatedAt);
   const balColor = balance !== undefined ? getBalanceColor(balance) : null;
   const todayRow = isToday(t.date);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <div
@@ -227,7 +229,21 @@ function DesktopGridRow({
       style={{ gridTemplateColumns: cols }}
     >
       <div className="px-2 py-2 whitespace-nowrap num text-center">{formatDateHe(t.date)}</div>
-      <div className="px-2 py-2 truncate">{t.category}</div>
+      <div className="px-2 py-2 truncate flex items-center gap-1.5">
+        <span className="truncate">{t.category}</span>
+        {t.imageUrl && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewOpen(true);
+            }}
+            className="text-base hover:scale-110 transition flex-shrink-0"
+            title="הצג קובץ מצורף"
+          >
+            📎
+          </button>
+        )}
+      </div>
       <div className="px-2 py-2 text-slate-700 dark:text-slate-300 truncate">{t.description}</div>
       <div className="px-2 py-2 num text-center text-[color:var(--color-income)] font-medium">
         {t.income ? formatShekel(t.income) : ''}
@@ -253,6 +269,14 @@ function DesktopGridRow({
           className="w-4 h-4 cursor-pointer"
         />
       </div>
+
+      {previewOpen && t.imageUrl && (
+        <ImageLightbox
+          url={t.imageUrl}
+          isPdf={t.imageUrl.toLowerCase().endsWith('.pdf')}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -272,6 +296,7 @@ function MobileCard({
 }) {
   const highlighted = isRecentlyUpdated(t.updatedAt);
   const balColor = balance !== undefined ? getBalanceColor(balance) : null;
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <div
@@ -283,9 +308,30 @@ function MobileCard({
       }`}
     >
       <div className="flex justify-between items-start mb-1">
-        <div className="font-medium">{t.category}</div>
+        <div className="font-medium flex items-center gap-1.5">
+          {t.category}
+          {t.imageUrl && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewOpen(true);
+              }}
+              className="text-base"
+              title="הצג קובץ מצורף"
+            >
+              📎
+            </button>
+          )}
+        </div>
         <div className="text-xs text-slate-500 num">{formatDateHe(t.date)}</div>
       </div>
+      {previewOpen && t.imageUrl && (
+        <ImageLightbox
+          url={t.imageUrl}
+          isPdf={t.imageUrl.toLowerCase().endsWith('.pdf')}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
       {t.description && <div className="text-sm text-slate-600 dark:text-slate-300 mb-2">{t.description}</div>}
       <div className="flex justify-between items-center">
         <div className="flex gap-3 text-sm">

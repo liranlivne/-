@@ -10,6 +10,7 @@ interface BalanceBarProps {
   onUpdateOpening: (value: number) => Promise<void>;
   onAddFuture: () => void;
   onAddPast: () => void;
+  onBankImport: () => void;
 }
 
 export function BalanceBar({
@@ -18,6 +19,7 @@ export function BalanceBar({
   onUpdateOpening,
   onAddFuture,
   onAddPast,
+  onBankImport,
 }: BalanceBarProps) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<string>(String(opening.balance));
@@ -105,7 +107,7 @@ export function BalanceBar({
 
         <div className="flex-1" />
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={onAddFuture}
             className="px-4 py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] transition font-medium"
@@ -115,10 +117,17 @@ export function BalanceBar({
           </button>
           <button
             onClick={onAddPast}
-            className="px-4 py-2 border-2 border-[#2D3A8C] text-[#2D3A8C] rounded hover:bg-[#2D3A8C]/5 transition font-medium"
+            className="px-4 py-2 border-2 border-[#2D3A8C] text-[#2D3A8C] dark:text-[#7583D8] rounded hover:bg-[#2D3A8C]/5 transition font-medium"
             title="הוסף תנועה שכבר בוצעה"
           >
             + הוסף לעבר
+          </button>
+          <button
+            onClick={onBankImport}
+            className="px-4 py-2 bg-[#F0A500] text-white rounded hover:bg-[#d49300] transition font-medium flex items-center gap-1"
+            title="ייבוא תנועות מצילום מסך של הבנק"
+          >
+            📸 ייבוא מהבנק
           </button>
         </div>
       </div>

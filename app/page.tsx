@@ -10,6 +10,7 @@ import { TransactionModal } from '@/components/TransactionModal';
 import { CategoryManager } from '@/components/CategoryManager';
 import { ExportButton } from '@/components/ExportButton';
 import { ChatPanel } from '@/components/ChatPanel';
+import { BankImportModal } from '@/components/BankImportModal';
 import { buildCsv, downloadCsv, defaultCsvFilename, printTransactions } from '@/lib/export';
 import {
   fetchSnapshot,
@@ -72,6 +73,7 @@ export default function HomePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [createAsPast, setCreateAsPast] = useState(false);
+  const [bankImportOpen, setBankImportOpen] = useState(false);
   const [catsOpen, setCatsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [undoVersion, setUndoVersion] = useState(0);
@@ -354,6 +356,37 @@ export default function HomePage() {
     await reload(true);
   };
 
+  const handleBankImport = async (
+    rows: Array<{
+      date: string;
+      category: string;
+      description: string;
+      income: number | null;
+      expense: number | null;
+    }>
+  ) => {
+    let successCount = 0;
+    for (const row of rows) {
+      try {
+        await createTransaction({
+          date: row.date,
+          category: row.category,
+          description: row.description,
+          income: row.income,
+          expense: row.expense,
+          frequency: '',
+          status: 'past',
+        });
+        successCount++;
+      } catch (err) {
+        console.error('Failed to import row:', row, err);
+      }
+    }
+    // Note: bulk import is NOT added to undo stack (too complex to reverse safely)
+    showToast(`נוספו ${successCount} תנועות לעבר`);
+    await reload(true);
+  };
+
   const handleSaveCategories = async (list: string[]) => {
     if (!snapshot) return;
     const prev = snapshot.categories;
@@ -395,6 +428,7 @@ export default function HomePage() {
               setCreateAsPast(true);
               setModalOpen(true);
             }}
+            onBankImport={() => setBankImportOpen(true)}
           />
           <FiltersPanel
             filters={filters}
@@ -509,6 +543,13 @@ export default function HomePage() {
             categories={snapshot.categories}
             onClose={() => setCatsOpen(false)}
             onSave={handleSaveCategories}
+          />
+          <BankImportModal
+            open={bankImportOpen}
+            categories={snapshot.categories}
+            existingTransactions={snapshot.transactions}
+            onClose={() => setBankImportOpen(false)}
+            onImport={handleBankImport}
           />
         </>
       )}

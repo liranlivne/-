@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Transaction, Frequency } from '@/lib/types';
 import { todayIso } from '@/lib/dateUtils';
+import { ImageUploader } from './ImageUploader';
 
 type Mode = 'create' | 'edit';
 
@@ -21,6 +22,7 @@ interface Props {
     income: number | null;
     expense: number | null;
     frequency: Frequency;
+    imageUrl: string | null;
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
 }
@@ -41,6 +43,7 @@ export function TransactionModal({
   const [income, setIncome] = useState('');
   const [expense, setExpense] = useState('');
   const [frequency, setFrequency] = useState<Frequency>('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -64,6 +67,7 @@ export function TransactionModal({
       setIncome(initial.income !== null ? String(initial.income) : '');
       setExpense(initial.expense !== null ? String(initial.expense) : '');
       setFrequency(initial.frequency);
+      setImageUrl(initial.imageUrl);
     } else {
       setDate(todayIso());
       setCategory(categories[0] ?? '');
@@ -71,6 +75,7 @@ export function TransactionModal({
       setIncome('');
       setExpense('');
       setFrequency('');
+      setImageUrl(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, openKey]);
@@ -109,6 +114,7 @@ export function TransactionModal({
         income: incomeNum,
         expense: expenseNum,
         frequency,
+        imageUrl,
       });
     } catch (err) {
       alert('שגיאה: ' + (err instanceof Error ? err.message : String(err)));
@@ -231,6 +237,15 @@ export function TransactionModal({
               <option value="דו-חודשי">דו-חודשי</option>
             </select>
           </label>
+
+          <div className="flex flex-col">
+            <span className="text-sm text-slate-600 dark:text-slate-400 mb-1">קובץ מצורף</span>
+            <ImageUploader
+              value={imageUrl}
+              onChange={setImageUrl}
+              disabled={saving || deleting}
+            />
+          </div>
         </div>
 
         <div className="border-t dark:border-slate-700 p-4 flex items-center justify-between gap-2">

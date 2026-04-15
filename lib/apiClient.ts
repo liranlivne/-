@@ -20,7 +20,7 @@ export async function fetchSnapshot(): Promise<SheetSnapshot> {
 }
 
 export async function createTransaction(
-  input: TransactionInput & { status?: 'future' | 'past' }
+  input: TransactionInput & { status?: 'future' | 'past'; imageUrl?: string | null }
 ): Promise<{ rowNumber: number }> {
   const res = await fetch('/api/transactions', {
     method: 'POST',
@@ -32,7 +32,13 @@ export async function createTransaction(
 
 export async function updateTransactionApi(
   rowNumber: number,
-  input: Partial<TransactionInput & { status: 'future' | 'past'; done: boolean }>
+  input: Partial<
+    TransactionInput & {
+      status: 'future' | 'past';
+      done: boolean;
+      imageUrl: string | null;
+    }
+  >
 ): Promise<void> {
   const res = await fetch(`/api/transactions/${rowNumber}`, {
     method: 'PUT',
@@ -40,6 +46,17 @@ export async function updateTransactionApi(
     body: JSON.stringify(input),
   });
   await json<{ ok: true }>(res);
+}
+
+export async function uploadFileApi(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await json<{ url: string }>(res);
+  return data.url;
 }
 
 export async function deleteTransactionApi(rowNumber: number): Promise<void> {

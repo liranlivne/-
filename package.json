@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.89.0",
     "@vercel/blob": "^2.3.3",
     "googleapis": "^171.4.0",
     "next": "16.2.3",
