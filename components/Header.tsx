@@ -12,7 +12,7 @@ interface HeaderProps {
 
 export function Header({ onOpenCategories, onRefresh, lastUpdated, isLoading }: HeaderProps) {
   return (
-    <header className="bg-[#2D3A8C] text-white shadow-md sm:sticky sm:top-0 sm:z-30">
+    <header className="bg-[#2D3A8C] text-white shadow-md sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
         {/* Right side in RTL: logo + title */}
         <div className="flex items-center gap-2 sm:gap-3">

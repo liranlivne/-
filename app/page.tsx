@@ -444,8 +444,6 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Mobile: entire top bar is one sticky block. Desktop: each section sticks individually */}
-      <div className="sticky top-0 z-30 sm:contents">
         <Header
           onOpenCategories={() => setCatsOpen(true)}
           onRefresh={() => reload(true)}
@@ -518,7 +516,6 @@ export default function HomePage() {
             />
           </>
         )}
-      </div>
 
       {loading && (
         <div className="flex-1 flex items-center justify-center">
