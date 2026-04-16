@@ -126,15 +126,13 @@ export function Header({
                 </button>
               </>
             ) : (
-              <>
-                <span className="num font-bold text-sm">{formatShekel(opening.balance)}</span>
-                <button
-                  onClick={() => setEditing(true)}
-                  className="text-[10px] opacity-70 hover:opacity-100 underline"
-                >
-                  ערוך
-                </button>
-              </>
+              <button
+                onClick={() => setEditing(true)}
+                className="num font-bold text-sm hover:underline underline-offset-2 decoration-dotted cursor-pointer"
+                title="לחץ לעדכון היתרה"
+              >
+                {formatShekel(opening.balance)}
+              </button>
             )}
           </div>
           {endColor && endOfPeriodBalance !== undefined && (
