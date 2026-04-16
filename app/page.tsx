@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SheetSnapshot, Transaction } from '@/lib/types';
 import { Header } from '@/components/Header';
-import { BalanceBar } from '@/components/BalanceBar';
 import { FiltersPanel, emptyFilters, applyFilters, type FiltersState } from '@/components/FiltersPanel';
 import { TransactionsTable } from '@/components/TransactionsTable';
 import { TransactionModal } from '@/components/TransactionModal';
@@ -442,28 +441,28 @@ export default function HomePage() {
 
   return (
     <>
-        <Header
-          balanceUpdatedAt={snapshot?.openingBalance.updatedAt ?? null}
-        />
+        {snapshot && (
+          <Header
+            balanceUpdatedAt={snapshot.openingBalance.updatedAt}
+            opening={snapshot.openingBalance}
+            endOfPeriodBalance={endOfMonthBalance}
+            onUpdateOpening={handleUpdateOpening}
+            onAddFuture={() => {
+              setEditing(null);
+              setCreateAsPast(false);
+              setModalOpen(true);
+            }}
+            onAddPast={() => {
+              setEditing(null);
+              setCreateAsPast(true);
+              setModalOpen(true);
+            }}
+            onBankImport={() => setBankImportOpen(true)}
+          />
+        )}
 
         {snapshot && (
           <>
-            <BalanceBar
-              opening={snapshot.openingBalance}
-              endOfPeriodBalance={endOfMonthBalance}
-              onUpdateOpening={handleUpdateOpening}
-              onAddFuture={() => {
-                setEditing(null);
-                setCreateAsPast(false);
-                setModalOpen(true);
-              }}
-              onAddPast={() => {
-                setEditing(null);
-                setCreateAsPast(true);
-                setModalOpen(true);
-              }}
-              onBankImport={() => setBankImportOpen(true)}
-            />
             <FiltersPanel
               filters={filters}
               onChange={setFilters}

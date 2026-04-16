@@ -52,7 +52,7 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot, onOpenC
   const update = (patch: Partial<FiltersState>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 sticky top-[140px] sm:top-[124px] z-10">
+    <div className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 sticky top-[90px] sm:top-[56px] z-10">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-2">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
