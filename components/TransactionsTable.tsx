@@ -17,6 +17,8 @@ interface Props {
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
   onOpenCategories: () => void;
+  onAddFuture: () => void;
+  onAddPast: () => void;
 }
 
 export function TransactionsTable({
@@ -29,6 +31,8 @@ export function TransactionsTable({
   selectedRows,
   onToggleSelect,
   onOpenCategories,
+  onAddFuture,
+  onAddPast,
 }: Props) {
   const [showPast, setShowPast] = useState(false);
   const pastScrollRef = useRef<HTMLDivElement>(null);
@@ -50,10 +54,10 @@ export function TransactionsTable({
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3 lg:mr-0 lg:pr-[304px]">
       {/* Past section header */}
-      <div className="mb-2">
+      <div className="mb-2 flex items-stretch gap-2">
         <button
           onClick={() => setShowPast((s) => !s)}
-          className="w-full text-right bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-between"
+          className="flex-1 text-right bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-between"
         >
           <span className="text-sm font-medium">
             {showPast ? '▲ הסתר עבר' : '▼ הצג עבר'}
@@ -61,6 +65,13 @@ export function TransactionsTable({
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {pastTransactions.length} רשומות בעבר
           </span>
+        </button>
+        <button
+          onClick={onAddPast}
+          className="shrink-0 px-3 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] font-bold text-lg"
+          title="הוסף תנועה לעבר"
+        >
+          +
         </button>
       </div>
 
@@ -84,13 +95,20 @@ export function TransactionsTable({
         </div>
       )}
 
-      {/* Today divider */}
+      {/* Today divider + add-future button */}
       <div className="my-4 flex items-center gap-3">
         <div className="flex-1 h-0.5 bg-[#2D3A8C]" />
         <div className="bg-[#2D3A8C] text-white px-4 py-1 rounded-full text-sm font-medium">
           היום — {formattedToday}
         </div>
         <div className="flex-1 h-0.5 bg-[#2D3A8C]" />
+        <button
+          onClick={onAddFuture}
+          className="shrink-0 w-9 h-9 bg-[#2D3A8C] text-white rounded-full hover:bg-[#1f2a6b] font-bold text-xl flex items-center justify-center shadow"
+          title="הוסף תנועה לתזרים"
+        >
+          +
+        </button>
       </div>
 
       {/* Future rows */}

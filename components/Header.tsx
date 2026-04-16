@@ -12,8 +12,6 @@ interface HeaderProps {
   opening: OpeningBalance;
   endOfPeriodBalance?: number;
   onUpdateOpening: (value: number) => Promise<void>;
-  onAddFuture: () => void;
-  onAddPast: () => void;
   onBankImport: () => void;
 }
 
@@ -38,8 +36,6 @@ export function Header({
   opening,
   endOfPeriodBalance,
   onUpdateOpening,
-  onAddFuture,
-  onAddPast,
   onBankImport,
 }: HeaderProps) {
   const [editing, setEditing] = useState(false);
@@ -69,7 +65,7 @@ export function Header({
 
   return (
     <header className="bg-[#2D3A8C] text-white shadow-md sticky top-0 z-30">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 flex flex-wrap items-center justify-center sm:justify-between gap-1.5 sm:gap-3">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-2 flex flex-wrap items-center justify-center sm:justify-between gap-2 sm:gap-3">
         {/* Logo + title */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="bg-white rounded p-0.5 flex items-center">
@@ -78,7 +74,7 @@ export function Header({
               alt="אויר הרים גגות"
               width={48}
               height={48}
-              className="h-7 sm:h-9 w-auto"
+              className="h-8 sm:h-10 w-auto"
               priority
             />
           </div>
@@ -88,27 +84,27 @@ export function Header({
           </div>
         </div>
 
-        {/* Balance badges */}
-        <div className="flex items-center gap-1.5 flex-wrap justify-center">
+        {/* Balance badges — enlarged */}
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <div
-            className="rounded px-2 py-0.5 flex items-center gap-1"
+            className="rounded-md px-3 py-1.5 flex items-center gap-2"
             style={{ background: openingColor.bg, color: openingColor.fg }}
           >
-            <span className="text-[10px] opacity-80">יתרה</span>
+            <span className="text-xs font-medium opacity-80">יתרה</span>
             {editing ? (
               <>
                 <input
                   type="text"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  className="num w-20 px-1 py-0 bg-white text-slate-900 rounded text-xs"
+                  className="num w-28 px-2 py-1 bg-white text-slate-900 rounded text-base font-bold"
                   disabled={saving}
                   autoFocus
                 />
                 <button
                   onClick={save}
                   disabled={saving}
-                  className="text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded"
+                  className="text-sm bg-green-600 text-white px-2 py-1 rounded"
                   title="שמור"
                 >
                   {saving ? '…' : '✓'}
@@ -119,7 +115,7 @@ export function Header({
                     setValue(String(opening.balance));
                   }}
                   disabled={saving}
-                  className="text-[10px] bg-slate-500 text-white px-1.5 py-0.5 rounded"
+                  className="text-sm bg-slate-500 text-white px-2 py-1 rounded"
                   title="ביטול"
                 >
                   ✕
@@ -128,7 +124,7 @@ export function Header({
             ) : (
               <button
                 onClick={() => setEditing(true)}
-                className="num font-bold text-sm hover:underline underline-offset-2 decoration-dotted cursor-pointer"
+                className="num font-bold text-lg hover:underline underline-offset-4 decoration-dotted cursor-pointer"
                 title="לחץ לעדכון היתרה"
               >
                 {formatShekel(opening.balance)}
@@ -137,48 +133,34 @@ export function Header({
           </div>
           {endColor && endOfPeriodBalance !== undefined && (
             <div
-              className="rounded px-2 py-0.5 flex items-center gap-1"
+              className="rounded-md px-3 py-1.5 flex items-center gap-2"
               style={{ background: endColor.bg, color: endColor.fg }}
               title="צפי יתרה לסוף החודש"
             >
-              <span className="text-[10px] opacity-80">צפי ח'</span>
-              <span className="num font-bold text-sm">{formatShekel(endOfPeriodBalance)}</span>
+              <span className="text-xs font-medium opacity-80">צפי סוף חודש</span>
+              <span className="num font-bold text-lg">{formatShekel(endOfPeriodBalance)}</span>
             </div>
           )}
         </div>
 
-        {/* Action buttons + theme */}
-        <div className="flex items-center gap-1 flex-wrap justify-center">
-          <button
-            onClick={onAddFuture}
-            className="px-2 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-medium"
-            title="תנועה עתידית — תוזז לעבר בעת סימון 'בוצע'"
-          >
-            + לתזרים
-          </button>
-          <button
-            onClick={onAddPast}
-            className="px-2 py-1 border border-white/40 hover:bg-white/10 rounded text-xs font-medium"
-            title="הוסף תנועה שכבר בוצעה"
-          >
-            + לעבר
-          </button>
+        {/* Bank import + theme */}
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <button
             onClick={onBankImport}
-            className="px-2 py-1 bg-[#F0A500] hover:bg-[#d49300] rounded text-xs font-medium"
+            className="px-3 py-1.5 bg-[#F0A500] hover:bg-[#d49300] rounded text-sm font-medium flex items-center gap-1"
             title="ייבוא תנועות מצילום מסך של הבנק"
           >
-            📸 בנק
+            📸 ייבוא מהבנק
           </button>
           <ThemeToggle />
         </div>
 
         {balanceUpdatedAt && (
           <div
-            className="text-[10px] text-blue-200 hidden lg:block"
+            className="text-xs text-blue-200 w-full text-center sm:w-auto sm:text-right"
             title="התאריך והשעה בהם עודכנה היתרה בפעם האחרונה"
           >
-            עדכון יתרה: {formatBalanceUpdated(balanceUpdatedAt)}
+            עדכון יתרה אחרון: {formatBalanceUpdated(balanceUpdatedAt)}
           </div>
         )}
       </div>

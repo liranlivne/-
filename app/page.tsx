@@ -447,16 +447,6 @@ export default function HomePage() {
             opening={snapshot.openingBalance}
             endOfPeriodBalance={endOfMonthBalance}
             onUpdateOpening={handleUpdateOpening}
-            onAddFuture={() => {
-              setEditing(null);
-              setCreateAsPast(false);
-              setModalOpen(true);
-            }}
-            onAddPast={() => {
-              setEditing(null);
-              setCreateAsPast(true);
-              setModalOpen(true);
-            }}
             onBankImport={() => setBankImportOpen(true)}
           />
         )}
@@ -547,6 +537,16 @@ export default function HomePage() {
             });
           }}
           onOpenCategories={() => setCatsOpen(true)}
+          onAddFuture={() => {
+            setEditing(null);
+            setCreateAsPast(false);
+            setModalOpen(true);
+          }}
+          onAddPast={() => {
+            setEditing(null);
+            setCreateAsPast(true);
+            setModalOpen(true);
+          }}
         />
       )}
 
