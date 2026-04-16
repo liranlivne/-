@@ -68,7 +68,6 @@ export default function HomePage() {
   const [snapshot, setSnapshot] = useState<SheetSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FiltersState>(emptyFilters);
   const [modalOpen, setModalOpen] = useState(false);
@@ -96,7 +95,6 @@ export default function HomePage() {
     try {
       const data = await fetchSnapshot();
       setSnapshot(data);
-      setLastUpdated(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -445,10 +443,7 @@ export default function HomePage() {
   return (
     <>
         <Header
-          onOpenCategories={() => setCatsOpen(true)}
-          onRefresh={() => reload(true)}
-          lastUpdated={lastUpdated}
-          isLoading={refreshing}
+          balanceUpdatedAt={snapshot?.openingBalance.updatedAt ?? null}
         />
 
         {snapshot && (
@@ -473,6 +468,7 @@ export default function HomePage() {
               filters={filters}
               onChange={setFilters}
               categories={snapshot.categories}
+              onOpenCategories={() => setCatsOpen(true)}
               rightSlot={
                 <>
                   <button
@@ -551,6 +547,7 @@ export default function HomePage() {
               return next;
             });
           }}
+          onOpenCategories={() => setCatsOpen(true)}
         />
       )}
 

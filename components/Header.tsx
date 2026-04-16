@@ -4,13 +4,27 @@ import Image from 'next/image';
 import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
-  onOpenCategories: () => void;
-  onRefresh: () => void;
-  lastUpdated?: Date | null;
-  isLoading?: boolean;
+  /** ISO timestamp of last time the opening balance itself was updated. */
+  balanceUpdatedAt?: string | null;
 }
 
-export function Header({ onOpenCategories, onRefresh, lastUpdated, isLoading }: HeaderProps) {
+function formatBalanceUpdated(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleString('he-IL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
+
+export function Header({ balanceUpdatedAt }: HeaderProps) {
   return (
     <header className="bg-[#2D3A8C] text-white shadow-md sticky top-0 z-30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
@@ -34,24 +48,10 @@ export function Header({ onOpenCategories, onRefresh, lastUpdated, isLoading }: 
 
         {/* Left side: nav */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <button
-            onClick={onRefresh}
-            disabled={isLoading}
-            className="px-2 sm:px-3 py-1 sm:py-1.5 rounded hover:bg-white/10 transition disabled:opacity-50 text-xs sm:text-sm"
-            title="רענון"
-          >
-            {isLoading ? '...' : '↻ רענן'}
-          </button>
-          <button
-            onClick={onOpenCategories}
-            className="px-2 sm:px-3 py-1 sm:py-1.5 rounded hover:bg-white/10 transition text-xs sm:text-sm"
-          >
-            קטגוריות
-          </button>
           <ThemeToggle />
-          {lastUpdated && (
-            <div className="text-xs text-blue-200 hidden sm:block">
-              עדכון אחרון: {lastUpdated.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+          {balanceUpdatedAt && (
+            <div className="text-xs text-blue-200 hidden sm:block" title="התאריך והשעה בהם עודכנה היתרה בפעם האחרונה">
+              עדכון יתרה אחרון: {formatBalanceUpdated(balanceUpdatedAt)}
             </div>
           )}
         </div>

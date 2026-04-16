@@ -16,6 +16,7 @@ interface Props {
   selectMode: boolean;
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
+  onOpenCategories: () => void;
 }
 
 export function TransactionsTable({
@@ -27,6 +28,7 @@ export function TransactionsTable({
   selectMode,
   selectedRows,
   onToggleSelect,
+  onOpenCategories,
 }: Props) {
   const [showPast, setShowPast] = useState(false);
   const pastScrollRef = useRef<HTMLDivElement>(null);
@@ -77,6 +79,7 @@ export function TransactionsTable({
             selectMode={selectMode}
             selectedRows={selectedRows}
             onToggleSelect={onToggleSelect}
+            onOpenCategories={onOpenCategories}
           />
         </div>
       )}
@@ -100,6 +103,7 @@ export function TransactionsTable({
         selectMode={selectMode}
         selectedRows={selectedRows}
         onToggleSelect={onToggleSelect}
+        onOpenCategories={onOpenCategories}
       />
     </div>
   );
@@ -114,6 +118,7 @@ function TableView({
   selectMode,
   selectedRows,
   onToggleSelect,
+  onOpenCategories,
 }: {
   rows: Transaction[];
   runningBalances: Map<number, number>;
@@ -123,6 +128,7 @@ function TableView({
   selectMode: boolean;
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
+  onOpenCategories: () => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -145,6 +151,7 @@ function TableView({
           selectMode={selectMode}
           selectedRows={selectedRows}
           onToggleSelect={onToggleSelect}
+          onOpenCategories={onOpenCategories}
         />
       </div>
 
@@ -177,6 +184,7 @@ function DesktopGrid({
   selectMode,
   selectedRows,
   onToggleSelect,
+  onOpenCategories,
 }: {
   rows: Transaction[];
   runningBalances: Map<number, number>;
@@ -186,6 +194,7 @@ function DesktopGrid({
   selectMode: boolean;
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
+  onOpenCategories: () => void;
 }) {
   // Grid template columns (visual order in RTL = logical order, since grid respects dir)
   // Order: [select?] date | category | description | income | expense | balance | frequency | done
@@ -222,7 +231,14 @@ function DesktopGrid({
           </div>
         )}
         <div className="px-2 py-2 text-center">תאריך</div>
-        <div className="px-2 py-2 text-right">קטגוריה</div>
+        <button
+          type="button"
+          onClick={onOpenCategories}
+          className="px-2 py-2 text-right hover:bg-white/10 transition cursor-pointer underline-offset-2 hover:underline"
+          title="נהל קטגוריות"
+        >
+          קטגוריה
+        </button>
         <div className="px-2 py-2 text-right">תיאור</div>
         <div className="px-2 py-2 text-center">הכנסה</div>
         <div className="px-2 py-2 text-center">הוצאה</div>

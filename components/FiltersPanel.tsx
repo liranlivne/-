@@ -31,9 +31,10 @@ interface Props {
   onChange: (f: FiltersState) => void;
   categories: string[];
   rightSlot?: React.ReactNode;
+  onOpenCategories?: () => void;
 }
 
-export function FiltersPanel({ filters, onChange, categories, rightSlot }: Props) {
+export function FiltersPanel({ filters, onChange, categories, rightSlot, onOpenCategories }: Props) {
   const [open, setOpen] = useState(false);
 
   const hasAny =
@@ -101,7 +102,19 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot }: Props
               />
             </label>
             <label className="flex flex-col">
-              <span className="text-xs text-slate-600 dark:text-slate-400 mb-0.5">קטגוריה</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400 mb-0.5 flex items-center justify-between">
+                <span>קטגוריה</span>
+                {onOpenCategories && (
+                  <button
+                    type="button"
+                    onClick={onOpenCategories}
+                    className="text-[10px] text-[#2D3A8C] dark:text-[#7583D8] underline hover:no-underline"
+                    title="נהל קטגוריות"
+                  >
+                    ⚙ נהל
+                  </button>
+                )}
+              </span>
               <select
                 value={filters.category}
                 onChange={(e) => update({ category: e.target.value })}
