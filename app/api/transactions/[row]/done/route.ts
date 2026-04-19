@@ -57,7 +57,8 @@ export async function POST(
       done: existing.done,
     };
 
-    // 2. Update the existing row: mark done, move to past, use execution date
+    // 2. Update the existing row: mark done, move to past, use execution date.
+    //    Preserve the original attachment (imageUrl) so the file stays on the past row.
     await updateTransaction(rowNumber, {
       date: executionDate,
       category: existing.category,
@@ -69,9 +70,11 @@ export async function POST(
       done: true,
       updatedAt: nowIso,
       status: 'past',
+      imageUrl: existing.imageUrl,
     });
 
-    // 3. If recurring, create next occurrence based on ORIGINAL date
+    // 3. If recurring, create next occurrence based on ORIGINAL date.
+    //    Also copy the attachment to the new future row so it stays on the recurring template.
     let createdRowNumber: number | undefined;
     if (existing.frequency === 'חודשי' || existing.frequency === 'דו-חודשי') {
       const nextDate = nextRecurrenceDate(existing.date, existing.frequency);
@@ -86,6 +89,7 @@ export async function POST(
         done: false,
         updatedAt: nowIso,
         status: 'future',
+        imageUrl: existing.imageUrl,
       });
     }
 
