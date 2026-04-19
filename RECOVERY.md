@@ -25,6 +25,17 @@
 1. **לוקלית (לפיתוח):** קובץ `.env.local` בשורש הפרויקט (לא ב-git).
 2. **ב-production:** ב-Vercel → Project Settings → Environment Variables.
 
+### 📁 איפה שמור קובץ ה-JSON של Google Service Account?
+
+ב-`C:\Users\dell\Secrets\fit-heaven-331119-cc7a3e199027.json`
+(מחוץ ל-OneDrive ומחוץ לכל תיקיית פרויקט, מטעמי אבטחה).
+
+⚠️ **שים לב:** הסקריפטים `scripts/setup-env.mjs` ו-`scripts/test-connection.mjs`
+מצפים למצוא את ה-JSON בתיקיית ההורה של הפרויקט (`../`).
+אם פעם תרצה להריץ אותם (למשל לאחר סיבוב credentials):
+- או העתק זמנית את ה-JSON לתיקיית ההורה של tzrim-app
+- או עדכן את הנתיבים בסקריפטים לכתובת החדשה ב-Secrets.
+
 ```
 GOOGLE_SHEET_ID          — ה-ID של גיליון Google Sheets (מופיע ב-URL)
 GOOGLE_CLIENT_EMAIL      — אימייל של Service Account שקיבל הרשאה לגיליון
