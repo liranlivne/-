@@ -25,6 +25,8 @@ interface Props {
     imageUrl: string | null;
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
+  /** Move a past row back to תזרים (sets status=future, done=false). Only used in edit mode. */
+  onRestoreToFuture?: () => Promise<void>;
 }
 
 export function TransactionModal({
@@ -36,6 +38,7 @@ export function TransactionModal({
   onClose,
   onSave,
   onDelete,
+  onRestoreToFuture,
 }: Props) {
   const [date, setDate] = useState(todayIso());
   const [category, setCategory] = useState('');
@@ -46,6 +49,7 @@ export function TransactionModal({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   // Only reset the form when the modal transitions from closed→open (or when switching
   // to editing a different row). Do NOT reset on every re-render when parent props
@@ -136,6 +140,17 @@ export function TransactionModal({
     }
   };
 
+  const restore = async () => {
+    if (!onRestoreToFuture) return;
+    setRestoring(true);
+    try {
+      await onRestoreToFuture();
+    } catch (err) {
+      alert('שגיאה בהחזרה לתזרים: ' + (err instanceof Error ? err.message : String(err)));
+      setRestoring(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
@@ -167,7 +182,7 @@ export function TransactionModal({
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
             />
           </label>
 
@@ -177,7 +192,7 @@ export function TransactionModal({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
             >
               <option value="">-- בחר --</option>
               {categories.map((c) => (
@@ -195,7 +210,7 @@ export function TransactionModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
             />
           </label>
 
@@ -207,7 +222,7 @@ export function TransactionModal({
                 value={income}
                 onChange={(e) => onIncomeChange(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded num"
-                disabled={saving || deleting}
+                disabled={saving || deleting || restoring}
                 placeholder="0"
               />
             </label>
@@ -218,7 +233,7 @@ export function TransactionModal({
                 value={expense}
                 onChange={(e) => onExpenseChange(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded num"
-                disabled={saving || deleting}
+                disabled={saving || deleting || restoring}
                 placeholder="0"
               />
             </label>
@@ -230,7 +245,7 @@ export function TransactionModal({
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as Frequency)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || isPast}
+              disabled={saving || deleting || restoring || isPast}
             >
               <option value="">חד פעמי</option>
               <option value="חודשי">חודשי</option>
@@ -243,32 +258,42 @@ export function TransactionModal({
             <ImageUploader
               value={imageUrl}
               onChange={setImageUrl}
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
             />
           </div>
         </div>
 
-        <div className="border-t dark:border-slate-700 p-4 flex items-center justify-between gap-2">
+        <div className="border-t dark:border-slate-700 p-4 flex flex-wrap items-center justify-between gap-2">
           {mode === 'edit' && onDelete && (
             <button
               onClick={del}
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
               className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm disabled:opacity-50"
             >
               {deleting ? 'מוחק...' : '🗑 מחק שורה'}
             </button>
           )}
+          {mode === 'edit' && initial?.status === 'past' && onRestoreToFuture && (
+            <button
+              onClick={restore}
+              disabled={saving || deleting || restoring}
+              className="px-3 py-2 bg-[#F0A500] text-white rounded hover:bg-[#d49300] text-sm disabled:opacity-50 font-medium"
+              title="החזר את השורה לתזרים (תיקון טעות של 'בוצע')"
+            >
+              {restoring ? 'מחזיר...' : '↩ החזר לתזרים'}
+            </button>
+          )}
           <div className="flex gap-2 mr-auto">
             <button
               onClick={onClose}
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
               className="px-4 py-2 border dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
             >
               ביטול
             </button>
             <button
               onClick={save}
-              disabled={saving || deleting}
+              disabled={saving || deleting || restoring}
               className="px-4 py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] disabled:opacity-50 font-medium"
             >
               {saving ? 'שומר...' : 'שמור'}

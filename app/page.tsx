@@ -224,7 +224,20 @@ export default function HomePage() {
     if (editing) {
       const prev = editing;
       const prevStatus = prev.status === 'opening' ? 'future' : prev.status;
-      await updateTransactionApi(editing.rowNumber, data);
+
+      // Auto-move a past row back to future if its new date is today or later.
+      // The past section represents already-executed rows; a future date means
+      // "not executed yet", so the row belongs in תזרים.
+      const movingPastToFuture =
+        prevStatus === 'past' && data.date >= todayIso();
+      const nextStatus: 'future' | 'past' = movingPastToFuture ? 'future' : prevStatus;
+      const nextDone = movingPastToFuture ? false : prev.done;
+
+      await updateTransactionApi(editing.rowNumber, {
+        ...data,
+        status: nextStatus,
+        done: nextDone,
+      });
       pushUndo({
         kind: 'update',
         rowNumber: editing.rowNumber,
@@ -245,12 +258,14 @@ export default function HomePage() {
           income: data.income,
           expense: data.expense,
           frequency: data.frequency,
-          done: prev.done,
-          status: prevStatus,
+          done: nextDone,
+          status: nextStatus,
         },
-        label: `עדכון "${prev.category}"`,
+        label: movingPastToFuture
+          ? `החזרת "${prev.category}" לתזרים`
+          : `עדכון "${prev.category}"`,
       });
-      showToast('התנועה עודכנה');
+      showToast(movingPastToFuture ? 'התנועה הוחזרה לתזרים' : 'התנועה עודכנה');
     } else {
       const res = await createTransaction({
         ...data,
@@ -298,6 +313,45 @@ export default function HomePage() {
       label: `מחיקת "${prev.category}"`,
     });
     showToast('השורה נמחקה');
+    setModalOpen(false);
+    setEditing(null);
+    await reload(true);
+  };
+
+  /** Move a past row back to תזרים (fix a mistaken "בוצע" mark). */
+  const handleRestoreToFuture = async () => {
+    if (!editing) return;
+    const prev = editing;
+    await updateTransactionApi(editing.rowNumber, {
+      status: 'future',
+      done: false,
+    });
+    pushUndo({
+      kind: 'update',
+      rowNumber: editing.rowNumber,
+      before: {
+        date: prev.date,
+        category: prev.category,
+        description: prev.description,
+        income: prev.income,
+        expense: prev.expense,
+        frequency: prev.frequency,
+        done: prev.done,
+        status: 'past',
+      },
+      after: {
+        date: prev.date,
+        category: prev.category,
+        description: prev.description,
+        income: prev.income,
+        expense: prev.expense,
+        frequency: prev.frequency,
+        done: false,
+        status: 'future',
+      },
+      label: `החזרת "${prev.category}" לתזרים`,
+    });
+    showToast('התנועה הוחזרה לתזרים');
     setModalOpen(false);
     setEditing(null);
     await reload(true);
@@ -598,6 +652,9 @@ export default function HomePage() {
             }}
             onSave={handleSave}
             onDelete={editing ? handleDelete : undefined}
+            onRestoreToFuture={
+              editing && editing.status === 'past' ? handleRestoreToFuture : undefined
+            }
           />
           <CategoryManager
             open={catsOpen}
