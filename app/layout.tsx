@@ -19,12 +19,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // Inline script: apply theme BEFORE React hydrates to avoid a flash.
+  // Only 'light' or 'dark' are supported. On first visit (no saved value),
+  // fall back to the system preference for the initial render.
   const themeScript = `
     (function() {
       try {
-        var saved = localStorage.getItem('tzrim-theme') || 'system';
-        var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var useDark = saved === 'dark' || (saved === 'system' && systemDark);
+        var saved = localStorage.getItem('tzrim-theme');
+        var useDark;
+        if (saved === 'dark') useDark = true;
+        else if (saved === 'light') useDark = false;
+        else useDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (useDark) document.documentElement.classList.add('dark');
       } catch (e) {}
     })();
