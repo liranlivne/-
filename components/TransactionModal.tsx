@@ -86,7 +86,6 @@ export function TransactionModal({
 
   if (!open) return null;
 
-  const isPast = initial?.status === 'past' || createContext === 'past';
   const isCreatingPast = mode === 'create' && createContext === 'past';
 
   const onIncomeChange = (v: string) => {
@@ -245,7 +244,7 @@ export function TransactionModal({
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as Frequency)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || isPast}
+              disabled={saving || deleting || restoring}
             >
               <option value="">חד פעמי</option>
               <option value="חודשי">חודשי</option>
