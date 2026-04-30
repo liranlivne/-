@@ -115,6 +115,33 @@ export function ChatPanel() {
     }
   }, [open, messages.length]);
 
+  // ESC closes the chat. The page-level ESC handler runs first in capture
+  // phase and stops propagation when ANY modal is open, so this only fires
+  // when the chat is the topmost interactive layer.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open]);
+
+  // Mobile back-button: when chat is open and no modal is on top, pressing
+  // back closes the chat instead of leaving the app.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !open) return;
+    window.history.pushState({ chat: true }, '');
+    const onPop = () => setOpen(false);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      if (window.history.state?.chat) {
+        window.history.back();
+      }
+    };
+  }, [open]);
+
   const unreadCount = Math.max(0, messages.length - lastSeenCount);
 
   const requestAuthorName = () => {

@@ -22,7 +22,7 @@ import {
   replaceCategoriesApi,
 } from '@/lib/apiClient';
 import { computeRunningBalances } from '@/lib/balance';
-import { todayIso, addMonthsIso } from '@/lib/dateUtils';
+import { todayIso, addMonthsIso, formatDateHe } from '@/lib/dateUtils';
 import {
   pushUndo,
   performUndo,
@@ -183,6 +183,82 @@ export default function HomePage() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [doUndo, doRedo]);
+
+  // ---------- ESC key + mobile back-button: close one layer at a time ----------
+  // Priority (top → bottom = handled first):
+  //   1. Bank-import modal
+  //   2. Category-manager modal
+  //   3. Transaction edit/create modal
+  //   4. Bulk-select mode
+  // The chat panel handles its own ESC inside ChatPanel.tsx. The handler stops
+  // propagation when it consumes the event so chat doesn't ALSO close.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (bankImportOpen) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setBankImportOpen(false);
+        return;
+      }
+      if (catsOpen) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setCatsOpen(false);
+        return;
+      }
+      if (modalOpen) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setModalOpen(false);
+        setEditing(null);
+        return;
+      }
+      if (selectMode) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setSelectMode(false);
+        setSelectedRows(new Set());
+        return;
+      }
+      // Otherwise: let other listeners handle it (e.g., chat panel)
+    };
+    // capture=true so we run before any window-level listener registered later
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [bankImportOpen, catsOpen, modalOpen, selectMode]);
+
+  // Mobile back-button: each open overlay pushes a history entry. Pressing
+  // "back" pops it and closes that overlay only — without leaving the app.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const anyOverlayOpen = bankImportOpen || catsOpen || modalOpen || selectMode;
+    if (!anyOverlayOpen) return;
+    // Push a sentinel state so the next "back" lands on a popstate we control
+    window.history.pushState({ overlay: true }, '');
+    const onPop = () => {
+      // Close the topmost overlay (same priority as ESC handler)
+      if (bankImportOpen) setBankImportOpen(false);
+      else if (catsOpen) setCatsOpen(false);
+      else if (modalOpen) {
+        setModalOpen(false);
+        setEditing(null);
+      } else if (selectMode) {
+        setSelectMode(false);
+        setSelectedRows(new Set());
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // If we still have a sentinel state when the overlay closes through
+      // another path (e.g., the X button), pop it so future Back doesn't
+      // misfire on a stale entry.
+      if (window.history.state?.overlay) {
+        window.history.back();
+      }
+    };
+  }, [bankImportOpen, catsOpen, modalOpen, selectMode]);
 
   // ---------- Derived state ----------
 
@@ -352,6 +428,111 @@ export default function HomePage() {
       label: `החזרת "${prev.category}" לתזרים`,
     });
     showToast('התנועה הוחזרה לתזרים');
+    setModalOpen(false);
+    setEditing(null);
+    await reload(true);
+  };
+
+  /** Duplicate the currently-edited row into a new row with the same fields. */
+  const handleDuplicate = async () => {
+    if (!editing) return;
+    const src = editing;
+    const targetStatus: 'future' | 'past' = src.status === 'past' ? 'past' : 'future';
+    const res = await createTransaction({
+      date: src.date,
+      category: src.category,
+      description: src.description,
+      income: src.income,
+      expense: src.expense,
+      frequency: src.frequency,
+      status: targetStatus,
+      imageUrl: src.imageUrl,
+    });
+    pushUndo({
+      kind: 'create',
+      createdRowNumber: res.rowNumber,
+      data: {
+        date: src.date,
+        category: src.category,
+        description: src.description,
+        income: src.income,
+        expense: src.expense,
+        frequency: src.frequency,
+        status: targetStatus,
+      },
+      label: `שכפול "${src.category}"`,
+    });
+    showToast('השורה שוכפלה');
+    setModalOpen(false);
+    setEditing(null);
+    await reload(true);
+  };
+
+  /**
+   * Partial payment: ask how much was paid, then:
+   *   - reduce the original (future) row's amount by that sum + append note
+   *   - create a new past row with the paid amount + a connecting note
+   */
+  const handlePartialPayment = async () => {
+    if (!editing) return;
+    const src = editing;
+    if (src.status === 'past') {
+      alert('שורה שכבר בעבר - לא ניתן לפצל לתשלום חלקי.');
+      return;
+    }
+    const isIncome = src.income !== null && src.income > 0;
+    const total = isIncome ? src.income! : (src.expense ?? 0);
+    if (!total || total <= 0) {
+      alert('אין סכום בשורה. עדכן הכנסה או הוצאה לפני פיצול.');
+      return;
+    }
+    const input = window.prompt(
+      `הסכום הכולל: ${total.toLocaleString('he-IL')} ₪\nכמה שולם בפועל?`
+    );
+    if (input == null) return; // cancelled
+    const paid = Number(String(input).replace(/[,₪\s]/g, ''));
+    if (!Number.isFinite(paid) || paid <= 0) {
+      alert('סכום לא תקין');
+      return;
+    }
+    if (paid >= total) {
+      alert(
+        `הסכום ששולם (${paid}) גדול או שווה לסכום הכולל (${total}). אם הכל שולם, השתמש ב"בוצע" במקום.`
+      );
+      return;
+    }
+    const remaining = total - paid;
+    const today = todayIso();
+    const todayHe = formatDateHe(today);
+    const noteForOriginal = `שולם ע"ח ${paid.toLocaleString('he-IL')}₪ ב-${todayHe}`;
+    const noteForPast = `תשלום ע"ח (מתוך ${total.toLocaleString('he-IL')}₪)`;
+
+    // 1. Update original row: reduced amount + appended note (still in תזרים)
+    const newDescription = src.description
+      ? `${src.description} | ${noteForOriginal}`
+      : noteForOriginal;
+    await updateTransactionApi(src.rowNumber, {
+      income: isIncome ? remaining : null,
+      expense: isIncome ? null : remaining,
+      description: newDescription,
+    });
+
+    // 2. Create the past row with what was paid
+    await createTransaction({
+      date: today,
+      category: src.category,
+      description: src.description ? `${src.description} - ${noteForPast}` : noteForPast,
+      income: isIncome ? paid : null,
+      expense: isIncome ? null : paid,
+      frequency: '',
+      status: 'past',
+      imageUrl: null,
+    });
+
+    // Note: not added to undo stack (multi-step operation; user can fix manually)
+    showToast(
+      `שולם ${paid.toLocaleString('he-IL')}₪ • נותר ${remaining.toLocaleString('he-IL')}₪`
+    );
     setModalOpen(false);
     setEditing(null);
     await reload(true);
@@ -654,6 +835,10 @@ export default function HomePage() {
             onDelete={editing ? handleDelete : undefined}
             onRestoreToFuture={
               editing && editing.status === 'past' ? handleRestoreToFuture : undefined
+            }
+            onDuplicate={editing ? handleDuplicate : undefined}
+            onPartialPayment={
+              editing && editing.status !== 'past' ? handlePartialPayment : undefined
             }
           />
           <CategoryManager
