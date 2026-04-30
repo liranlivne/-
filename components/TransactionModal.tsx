@@ -72,6 +72,15 @@ export function TransactionModal({
     if (lastOpenKeyRef.current === openKey) return; // already initialized for this open
     lastOpenKeyRef.current = openKey;
 
+    // Defensive reset of action flags — they should already be false from
+    // the action's `finally`, but if a previous render glitched we want a
+    // freshly-opened modal to be fully interactive.
+    setSaving(false);
+    setDeleting(false);
+    setRestoring(false);
+    setDuplicating(false);
+    setSplitting(false);
+
     if (initial) {
       setDate(initial.date);
       setCategory(initial.category);
@@ -143,6 +152,7 @@ export function TransactionModal({
       await onDelete();
     } catch (err) {
       alert('שגיאה במחיקה: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
       setDeleting(false);
     }
   };
@@ -154,6 +164,7 @@ export function TransactionModal({
       await onRestoreToFuture();
     } catch (err) {
       alert('שגיאה בהחזרה לתזרים: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
       setRestoring(false);
     }
   };
@@ -165,6 +176,7 @@ export function TransactionModal({
       await onDuplicate();
     } catch (err) {
       alert('שגיאה בשכפול: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
       setDuplicating(false);
     }
   };
@@ -176,6 +188,7 @@ export function TransactionModal({
       await onPartialPayment();
     } catch (err) {
       alert('שגיאה: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
       setSplitting(false);
     }
   };
