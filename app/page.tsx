@@ -627,6 +627,37 @@ export default function HomePage() {
     await reload(true);
   };
 
+  const handleBulkChangeDate = async (newDate: string) => {
+    if (!snapshot || selectedRows.size === 0) return;
+    const today = todayIso();
+    const movingPastToFuture = newDate >= today;
+    let successCount = 0;
+    for (const row of selectedRows) {
+      try {
+        const tx = snapshot.transactions.find((t) => t.rowNumber === row);
+        const wasPast = tx?.status === 'past';
+        // If a past row is being moved to today/future, restore it to תזרים
+        // (mirrors the single-row edit behavior in handleSave).
+        if (wasPast && movingPastToFuture) {
+          await updateTransactionApi(row, {
+            date: newDate,
+            status: 'future',
+            done: false,
+          });
+        } else {
+          await updateTransactionApi(row, { date: newDate });
+        }
+        successCount++;
+      } catch (err) {
+        console.error('Failed to update row', row, err);
+      }
+    }
+    showToast(`${successCount} שורות הועברו לתאריך ${formatDateHe(newDate)}`);
+    setSelectedRows(new Set());
+    setSelectMode(false);
+    await reload(true);
+  };
+
   const handleBankImport = async (
     rows: Array<{
       date: string;
@@ -868,6 +899,7 @@ export default function HomePage() {
           }}
           onDelete={handleBulkDelete}
           onChangeCategory={handleBulkChangeCategory}
+          onChangeDate={handleBulkChangeDate}
         />
       )}
 
