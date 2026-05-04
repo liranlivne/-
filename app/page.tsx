@@ -73,7 +73,6 @@ export default function HomePage() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [createAsPast, setCreateAsPast] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [catsOpen, setCatsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -189,7 +188,7 @@ export default function HomePage() {
   //   1. Bank-import modal
   //   2. Category-manager modal
   //   3. Transaction edit/create modal
-  //   4. Bulk-select mode
+  //   4. Active multi-row selection (clears the selection)
   // The chat panel handles its own ESC inside ChatPanel.tsx. The handler stops
   // propagation when it consumes the event so chat doesn't ALSO close.
   useEffect(() => {
@@ -214,10 +213,9 @@ export default function HomePage() {
         setEditing(null);
         return;
       }
-      if (selectMode) {
+      if (selectedRows.size > 0) {
         e.stopImmediatePropagation();
         e.preventDefault();
-        setSelectMode(false);
         setSelectedRows(new Set());
         return;
       }
@@ -226,13 +224,14 @@ export default function HomePage() {
     // capture=true so we run before any window-level listener registered later
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [bankImportOpen, catsOpen, modalOpen, selectMode]);
+  }, [bankImportOpen, catsOpen, modalOpen, selectedRows]);
 
   // Mobile back-button: each open overlay pushes a history entry. Pressing
   // "back" pops it and closes that overlay only — without leaving the app.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const anyOverlayOpen = bankImportOpen || catsOpen || modalOpen || selectMode;
+    const anyOverlayOpen =
+      bankImportOpen || catsOpen || modalOpen || selectedRows.size > 0;
     if (!anyOverlayOpen) return;
     // Push a sentinel state so the next "back" lands on a popstate we control
     window.history.pushState({ overlay: true }, '');
@@ -243,8 +242,7 @@ export default function HomePage() {
       else if (modalOpen) {
         setModalOpen(false);
         setEditing(null);
-      } else if (selectMode) {
-        setSelectMode(false);
+      } else if (selectedRows.size > 0) {
         setSelectedRows(new Set());
       }
     };
@@ -258,7 +256,7 @@ export default function HomePage() {
         window.history.back();
       }
     };
-  }, [bankImportOpen, catsOpen, modalOpen, selectMode]);
+  }, [bankImportOpen, catsOpen, modalOpen, selectedRows]);
 
   // ---------- Derived state ----------
 
@@ -606,7 +604,6 @@ export default function HomePage() {
     }
     showToast(`נמחקו ${successCount} שורות`);
     setSelectedRows(new Set());
-    setSelectMode(false);
     await reload(true);
   };
 
@@ -623,7 +620,6 @@ export default function HomePage() {
     }
     showToast(`${successCount} שורות עודכנו לקטגוריה "${newCategory}"`);
     setSelectedRows(new Set());
-    setSelectMode(false);
     await reload(true);
   };
 
@@ -654,7 +650,6 @@ export default function HomePage() {
     }
     showToast(`${successCount} שורות הועברו לתאריך ${formatDateHe(newDate)}`);
     setSelectedRows(new Set());
-    setSelectMode(false);
     await reload(true);
   };
 
@@ -726,20 +721,6 @@ export default function HomePage() {
               onOpenCategories={() => setCatsOpen(true)}
               rightSlot={
                 <>
-                  <button
-                    onClick={() => {
-                      setSelectMode((prev) => !prev);
-                      setSelectedRows(new Set());
-                    }}
-                    className={`px-3 py-1 text-sm rounded border dark:border-slate-600 ${
-                      selectMode
-                        ? 'bg-[#F0A500] text-white border-[#F0A500]'
-                        : 'hover:bg-slate-50 dark:hover:bg-slate-700'
-                    }`}
-                    title="בחר מספר שורות לביצוע פעולות מרובות"
-                  >
-                    {selectMode ? '✕ סגור בחירה' : '☑ בחירה מרובה'}
-                  </button>
                   <ExportButton
                     hasFilter={hasActiveFilter(filters)}
                     onExportCsv={() => {
@@ -792,7 +773,6 @@ export default function HomePage() {
             setModalOpen(true);
           }}
           onToggleDone={handleToggleDone}
-          selectMode={selectMode}
           selectedRows={selectedRows}
           onToggleSelect={(rowNumber) => {
             setSelectedRows((prev) => {
@@ -888,15 +868,12 @@ export default function HomePage() {
         </>
       )}
 
-      {/* Bulk actions bar */}
-      {selectMode && snapshot && (
+      {/* Bulk actions bar — appears when at least one row is selected */}
+      {selectedRows.size > 0 && snapshot && (
         <BulkActionBar
           count={selectedRows.size}
           categories={snapshot.categories}
-          onCancel={() => {
-            setSelectMode(false);
-            setSelectedRows(new Set());
-          }}
+          onCancel={() => setSelectedRows(new Set())}
           onDelete={handleBulkDelete}
           onChangeCategory={handleBulkChangeCategory}
           onChangeDate={handleBulkChangeDate}

@@ -13,7 +13,6 @@ interface Props {
   runningBalances: Map<number, number>;
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
-  selectMode: boolean;
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
   onOpenCategories: () => void;
@@ -27,7 +26,6 @@ export function TransactionsTable({
   runningBalances,
   onRowClick,
   onToggleDone,
-  selectMode,
   selectedRows,
   onToggleSelect,
   onOpenCategories,
@@ -87,7 +85,6 @@ export function TransactionsTable({
             onRowClick={onRowClick}
             onToggleDone={onToggleDone}
             showBalanceCol={false}
-            selectMode={selectMode}
             selectedRows={selectedRows}
             onToggleSelect={onToggleSelect}
             onOpenCategories={onOpenCategories}
@@ -118,7 +115,6 @@ export function TransactionsTable({
         onRowClick={onRowClick}
         onToggleDone={onToggleDone}
         showBalanceCol={true}
-        selectMode={selectMode}
         selectedRows={selectedRows}
         onToggleSelect={onToggleSelect}
         onOpenCategories={onOpenCategories}
@@ -133,7 +129,6 @@ function TableView({
   onRowClick,
   onToggleDone,
   showBalanceCol,
-  selectMode,
   selectedRows,
   onToggleSelect,
   onOpenCategories,
@@ -143,7 +138,6 @@ function TableView({
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
-  selectMode: boolean;
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
   onOpenCategories: () => void;
@@ -166,7 +160,6 @@ function TableView({
           onRowClick={onRowClick}
           onToggleDone={onToggleDone}
           showBalanceCol={showBalanceCol}
-          selectMode={selectMode}
           selectedRows={selectedRows}
           onToggleSelect={onToggleSelect}
           onOpenCategories={onOpenCategories}
@@ -183,7 +176,6 @@ function TableView({
             onRowClick={onRowClick}
             onToggleDone={onToggleDone}
             showBalance={showBalanceCol}
-            selectMode={selectMode}
             selected={selectedRows.has(t.rowNumber)}
             onToggleSelect={onToggleSelect}
           />
@@ -199,7 +191,6 @@ function DesktopGrid({
   onRowClick,
   onToggleDone,
   showBalanceCol,
-  selectMode,
   selectedRows,
   onToggleSelect,
   onOpenCategories,
@@ -209,17 +200,15 @@ function DesktopGrid({
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
-  selectMode: boolean;
   selectedRows: Set<number>;
   onToggleSelect: (rowNumber: number) => void;
   onOpenCategories: () => void;
 }) {
   // Grid template columns (visual order in RTL = logical order, since grid respects dir)
-  // Order: [select?] date | category | description | income | expense | balance | frequency | done
-  const baseCols = showBalanceCol
-    ? '95px 140px minmax(120px,1fr) 120px 120px 130px 90px 60px'
-    : '95px 140px minmax(120px,1fr) 120px 120px 90px 60px';
-  const cols = selectMode ? `40px ${baseCols}` : baseCols;
+  // Order: select | date | category | description | income | expense | balance | frequency | done
+  const cols = showBalanceCol
+    ? '54px 95px 140px minmax(120px,1fr) 120px 120px 130px 90px 60px'
+    : '54px 95px 140px minmax(120px,1fr) 120px 120px 90px 60px';
 
   return (
     <div>
@@ -228,26 +217,25 @@ function DesktopGrid({
         className="grid bg-[#2D3A8C] text-white text-sm font-medium"
         style={{ gridTemplateColumns: cols }}
       >
-        {selectMode && (
-          <div className="px-2 py-2 text-center">
-            <input
-              type="checkbox"
-              checked={rows.length > 0 && rows.every((r) => selectedRows.has(r.rowNumber))}
-              onChange={() => {
-                const allSelected = rows.every((r) => selectedRows.has(r.rowNumber));
-                for (const r of rows) {
-                  if (allSelected) {
-                    if (selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
-                  } else {
-                    if (!selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
-                  }
+        <div className="px-2 py-2 text-center flex flex-col items-center gap-0.5">
+          <span className="text-[10px] opacity-80 leading-none">בחירה</span>
+          <input
+            type="checkbox"
+            checked={rows.length > 0 && rows.every((r) => selectedRows.has(r.rowNumber))}
+            onChange={() => {
+              const allSelected = rows.every((r) => selectedRows.has(r.rowNumber));
+              for (const r of rows) {
+                if (allSelected) {
+                  if (selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
+                } else {
+                  if (!selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
                 }
-              }}
-              className="w-4 h-4"
-              title="סמן/בטל הכל"
-            />
-          </div>
-        )}
+              }
+            }}
+            className="w-4 h-4"
+            title="סמן/בטל הכל"
+          />
+        </div>
         <div className="px-2 py-2 text-center">תאריך</div>
         <button
           type="button"
@@ -275,7 +263,6 @@ function DesktopGrid({
           onToggleDone={onToggleDone}
           showBalanceCol={showBalanceCol}
           cols={cols}
-          selectMode={selectMode}
           selected={selectedRows.has(t.rowNumber)}
           onToggleSelect={onToggleSelect}
         />
@@ -291,7 +278,6 @@ function DesktopGridRow({
   onToggleDone,
   showBalanceCol,
   cols,
-  selectMode,
   selected,
   onToggleSelect,
 }: {
@@ -301,7 +287,6 @@ function DesktopGridRow({
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
   cols: string;
-  selectMode: boolean;
   selected: boolean;
   onToggleSelect: (rowNumber: number) => void;
 }) {
@@ -312,10 +297,7 @@ function DesktopGridRow({
 
   return (
     <div
-      onClick={() => {
-        if (selectMode) onToggleSelect(t.rowNumber);
-        else onRowClick(t);
-      }}
+      onClick={() => onRowClick(t)}
       className={`grid text-sm border-t dark:border-slate-700 cursor-pointer transition items-center ${
         selected
           ? 'bg-blue-100 dark:bg-blue-900/50 ring-1 ring-[#2D3A8C] ring-inset'
@@ -327,16 +309,14 @@ function DesktopGridRow({
       }`}
       style={{ gridTemplateColumns: cols }}
     >
-      {selectMode && (
-        <div className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={() => onToggleSelect(t.rowNumber)}
-            className="w-4 h-4 cursor-pointer"
-          />
-        </div>
-      )}
+      <div className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(t.rowNumber)}
+          className="w-4 h-4 cursor-pointer"
+        />
+      </div>
       <div className="px-2 py-2 whitespace-nowrap num text-center">{formatDateHe(t.date)}</div>
       <div className="px-2 py-2 truncate flex items-center gap-1.5">
         <span className="truncate">{t.category}</span>
@@ -396,7 +376,6 @@ function MobileCard({
   onRowClick,
   onToggleDone,
   showBalance,
-  selectMode,
   selected,
   onToggleSelect,
 }: {
@@ -405,7 +384,6 @@ function MobileCard({
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   showBalance: boolean;
-  selectMode: boolean;
   selected: boolean;
   onToggleSelect: (rowNumber: number) => void;
 }) {
@@ -415,10 +393,7 @@ function MobileCard({
 
   return (
     <div
-      onClick={() => {
-        if (selectMode) onToggleSelect(t.rowNumber);
-        else onRowClick(t);
-      }}
+      onClick={() => onRowClick(t)}
       className={`border-b dark:border-slate-700 px-2 py-1.5 cursor-pointer flex items-center gap-1.5 ${
         selected
           ? 'bg-blue-100 dark:bg-blue-900/50 ring-1 ring-inset ring-[#2D3A8C]'
@@ -427,15 +402,14 @@ function MobileCard({
           : 'bg-white dark:bg-slate-800'
       }`}
     >
-      {selectMode && (
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(t.rowNumber)}
-          className="w-3.5 h-3.5 flex-shrink-0"
-          onClick={(e) => e.stopPropagation()}
-        />
-      )}
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect(t.rowNumber)}
+        className="w-4 h-4 flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+        title="בחירה"
+      />
       {/* Single horizontal row: date | category | amount | balance | done */}
       <span className="num text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0 w-[52px] text-center">{formatDateHe(t.date)}</span>
       <span className="text-xs font-medium truncate min-w-0 flex-1 flex items-center gap-0.5">
