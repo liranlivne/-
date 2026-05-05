@@ -774,11 +774,15 @@ export default function HomePage() {
           }}
           onToggleDone={handleToggleDone}
           selectedRows={selectedRows}
-          onToggleSelect={(rowNumber) => {
+          onSetSelect={(rowNumber, selected) => {
+            // Idempotent — required because React Strict Mode invokes
+            // setState updaters twice in dev, and a non-idempotent toggle
+            // would cancel itself out on the second invocation.
             setSelectedRows((prev) => {
+              if (selected === prev.has(rowNumber)) return prev;
               const next = new Set(prev);
-              if (next.has(rowNumber)) next.delete(rowNumber);
-              else next.add(rowNumber);
+              if (selected) next.add(rowNumber);
+              else next.delete(rowNumber);
               return next;
             });
           }}

@@ -14,7 +14,7 @@ interface Props {
   onRowClick: (t: Transaction) => void;
   onToggleDone: (t: Transaction) => void;
   selectedRows: Set<number>;
-  onToggleSelect: (rowNumber: number) => void;
+  onSetSelect: (rowNumber: number, selected: boolean) => void;
   onOpenCategories: () => void;
   onAddFuture: () => void;
   onAddPast: () => void;
@@ -27,7 +27,7 @@ export function TransactionsTable({
   onRowClick,
   onToggleDone,
   selectedRows,
-  onToggleSelect,
+  onSetSelect,
   onOpenCategories,
   onAddFuture,
   onAddPast,
@@ -86,7 +86,7 @@ export function TransactionsTable({
             onToggleDone={onToggleDone}
             showBalanceCol={false}
             selectedRows={selectedRows}
-            onToggleSelect={onToggleSelect}
+            onSetSelect={onSetSelect}
             onOpenCategories={onOpenCategories}
           />
         </div>
@@ -116,7 +116,7 @@ export function TransactionsTable({
         onToggleDone={onToggleDone}
         showBalanceCol={true}
         selectedRows={selectedRows}
-        onToggleSelect={onToggleSelect}
+        onSetSelect={onSetSelect}
         onOpenCategories={onOpenCategories}
       />
     </div>
@@ -130,7 +130,7 @@ function TableView({
   onToggleDone,
   showBalanceCol,
   selectedRows,
-  onToggleSelect,
+  onSetSelect,
   onOpenCategories,
 }: {
   rows: Transaction[];
@@ -139,7 +139,7 @@ function TableView({
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
   selectedRows: Set<number>;
-  onToggleSelect: (rowNumber: number) => void;
+  onSetSelect: (rowNumber: number, selected: boolean) => void;
   onOpenCategories: () => void;
 }) {
   if (rows.length === 0) {
@@ -161,7 +161,7 @@ function TableView({
           onToggleDone={onToggleDone}
           showBalanceCol={showBalanceCol}
           selectedRows={selectedRows}
-          onToggleSelect={onToggleSelect}
+          onSetSelect={onSetSelect}
           onOpenCategories={onOpenCategories}
         />
       </div>
@@ -177,7 +177,7 @@ function TableView({
             onToggleDone={onToggleDone}
             showBalance={showBalanceCol}
             selected={selectedRows.has(t.rowNumber)}
-            onToggleSelect={onToggleSelect}
+            onSetSelect={onSetSelect}
           />
         ))}
       </div>
@@ -192,7 +192,7 @@ function DesktopGrid({
   onToggleDone,
   showBalanceCol,
   selectedRows,
-  onToggleSelect,
+  onSetSelect,
   onOpenCategories,
 }: {
   rows: Transaction[];
@@ -201,7 +201,7 @@ function DesktopGrid({
   onToggleDone: (t: Transaction) => void;
   showBalanceCol: boolean;
   selectedRows: Set<number>;
-  onToggleSelect: (rowNumber: number) => void;
+  onSetSelect: (rowNumber: number, selected: boolean) => void;
   onOpenCategories: () => void;
 }) {
   // Grid template columns (visual order in RTL = logical order, since grid respects dir)
@@ -222,15 +222,9 @@ function DesktopGrid({
           <input
             type="checkbox"
             checked={rows.length > 0 && rows.every((r) => selectedRows.has(r.rowNumber))}
-            onChange={() => {
-              const allSelected = rows.every((r) => selectedRows.has(r.rowNumber));
-              for (const r of rows) {
-                if (allSelected) {
-                  if (selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
-                } else {
-                  if (!selectedRows.has(r.rowNumber)) onToggleSelect(r.rowNumber);
-                }
-              }
+            onChange={(e) => {
+              const next = e.target.checked;
+              for (const r of rows) onSetSelect(r.rowNumber, next);
             }}
             className="w-4 h-4"
             title="סמן/בטל הכל"
@@ -264,7 +258,7 @@ function DesktopGrid({
           showBalanceCol={showBalanceCol}
           cols={cols}
           selected={selectedRows.has(t.rowNumber)}
-          onToggleSelect={onToggleSelect}
+          onSetSelect={onSetSelect}
         />
       ))}
     </div>
@@ -279,7 +273,7 @@ function DesktopGridRow({
   showBalanceCol,
   cols,
   selected,
-  onToggleSelect,
+  onSetSelect,
 }: {
   t: Transaction;
   balance: number | undefined;
@@ -288,7 +282,7 @@ function DesktopGridRow({
   showBalanceCol: boolean;
   cols: string;
   selected: boolean;
-  onToggleSelect: (rowNumber: number) => void;
+  onSetSelect: (rowNumber: number, selected: boolean) => void;
 }) {
   const highlighted = isRecentlyUpdated(t.updatedAt);
   const balColor = balance !== undefined ? getBalanceColor(balance) : null;
@@ -313,7 +307,7 @@ function DesktopGridRow({
         <input
           type="checkbox"
           checked={selected}
-          onChange={() => onToggleSelect(t.rowNumber)}
+          onChange={(e) => onSetSelect(t.rowNumber, e.target.checked)}
           className="w-4 h-4 cursor-pointer"
         />
       </div>
@@ -377,7 +371,7 @@ function MobileCard({
   onToggleDone,
   showBalance,
   selected,
-  onToggleSelect,
+  onSetSelect,
 }: {
   t: Transaction;
   balance: number | undefined;
@@ -385,7 +379,7 @@ function MobileCard({
   onToggleDone: (t: Transaction) => void;
   showBalance: boolean;
   selected: boolean;
-  onToggleSelect: (rowNumber: number) => void;
+  onSetSelect: (rowNumber: number, selected: boolean) => void;
 }) {
   const highlighted = isRecentlyUpdated(t.updatedAt);
   const balColor = balance !== undefined ? getBalanceColor(balance) : null;
@@ -405,7 +399,7 @@ function MobileCard({
       <input
         type="checkbox"
         checked={selected}
-        onChange={() => onToggleSelect(t.rowNumber)}
+        onChange={(e) => onSetSelect(t.rowNumber, e.target.checked)}
         className="w-4 h-4 flex-shrink-0"
         onClick={(e) => e.stopPropagation()}
         title="בחירה"
