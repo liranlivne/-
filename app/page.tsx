@@ -228,35 +228,49 @@ export default function HomePage() {
 
   // Mobile back-button: each open overlay pushes a history entry. Pressing
   // "back" pops it and closes that overlay only — without leaving the app.
+  //
+  // Deps are intentionally `[anyOverlayOpen]` — a *boolean*, not the full
+  // state objects. Re-running this effect on every selectedRows change would
+  // make the cleanup fire `window.history.back()` mid-selection, which itself
+  // triggers popstate and clears the selection. The onPop handler reads from
+  // a ref so it always sees current state without re-subscribing.
+  const overlayStateRef = useRef({
+    bankImportOpen,
+    catsOpen,
+    modalOpen,
+    selectedRows,
+  });
+  overlayStateRef.current = {
+    bankImportOpen,
+    catsOpen,
+    modalOpen,
+    selectedRows,
+  };
+  const anyOverlayOpen =
+    bankImportOpen || catsOpen || modalOpen || selectedRows.size > 0;
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const anyOverlayOpen =
-      bankImportOpen || catsOpen || modalOpen || selectedRows.size > 0;
     if (!anyOverlayOpen) return;
-    // Push a sentinel state so the next "back" lands on a popstate we control
     window.history.pushState({ overlay: true }, '');
     const onPop = () => {
-      // Close the topmost overlay (same priority as ESC handler)
-      if (bankImportOpen) setBankImportOpen(false);
-      else if (catsOpen) setCatsOpen(false);
-      else if (modalOpen) {
+      const s = overlayStateRef.current;
+      if (s.bankImportOpen) setBankImportOpen(false);
+      else if (s.catsOpen) setCatsOpen(false);
+      else if (s.modalOpen) {
         setModalOpen(false);
         setEditing(null);
-      } else if (selectedRows.size > 0) {
+      } else if (s.selectedRows.size > 0) {
         setSelectedRows(new Set());
       }
     };
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
-      // If we still have a sentinel state when the overlay closes through
-      // another path (e.g., the X button), pop it so future Back doesn't
-      // misfire on a stale entry.
       if (window.history.state?.overlay) {
         window.history.back();
       }
     };
-  }, [bankImportOpen, catsOpen, modalOpen, selectedRows]);
+  }, [anyOverlayOpen]);
 
   // ---------- Derived state ----------
 
