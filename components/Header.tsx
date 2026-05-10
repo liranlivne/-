@@ -13,6 +13,7 @@ interface HeaderProps {
   endOfPeriodBalance?: number;
   onUpdateOpening: (value: number) => Promise<void>;
   onBankImport: () => void;
+  onSalaryImport: () => void;
 }
 
 function formatBalanceUpdated(iso: string): string {
@@ -37,6 +38,7 @@ export function Header({
   endOfPeriodBalance,
   onUpdateOpening,
   onBankImport,
+  onSalaryImport,
 }: HeaderProps) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<string>(String(opening.balance));
@@ -151,6 +153,13 @@ export function Header({
             title="ייבוא תנועות מצילום מסך של הבנק"
           >
             📸 ייבוא מהבנק
+          </button>
+          <button
+            onClick={onSalaryImport}
+            className="px-3 py-1.5 bg-[#F0A500] hover:bg-[#d49300] rounded text-sm font-medium flex items-center gap-1"
+            title="ייבוא משכורות מקובץ PDF של תלושי שכר"
+          >
+            📄 ייבוא משכורות
           </button>
           <ThemeToggle />
         </div>

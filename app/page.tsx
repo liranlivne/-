@@ -10,6 +10,7 @@ import { CategoryManager } from '@/components/CategoryManager';
 import { ExportButton } from '@/components/ExportButton';
 import { ChatPanel } from '@/components/ChatPanel';
 import { BankImportModal } from '@/components/BankImportModal';
+import { SalaryImportModal } from '@/components/SalaryImportModal';
 import { BulkActionBar } from '@/components/BulkActionBar';
 import { buildCsv, downloadCsv, defaultCsvFilename, printTransactions } from '@/lib/export';
 import {
@@ -73,6 +74,7 @@ export default function HomePage() {
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [createAsPast, setCreateAsPast] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
+  const [salaryImportOpen, setSalaryImportOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [catsOpen, setCatsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -108,12 +110,12 @@ export default function HomePage() {
   // Auto-refresh every 30s. Pause while a modal is open so background
   // refreshes don't disturb the user's typing.
   useEffect(() => {
-    if (modalOpen || catsOpen) return;
+    if (modalOpen || catsOpen || bankImportOpen || salaryImportOpen) return;
     const id = setInterval(() => {
       reload(true);
     }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [reload, modalOpen, catsOpen]);
+  }, [reload, modalOpen, catsOpen, bankImportOpen, salaryImportOpen]);
 
   // Re-render when undo/redo stacks change
   useEffect(() => {
@@ -186,9 +188,10 @@ export default function HomePage() {
   // ---------- ESC key + mobile back-button: close one layer at a time ----------
   // Priority (top → bottom = handled first):
   //   1. Bank-import modal
-  //   2. Category-manager modal
-  //   3. Transaction edit/create modal
-  //   4. Active multi-row selection (clears the selection)
+  //   2. Salary-import modal
+  //   3. Category-manager modal
+  //   4. Transaction edit/create modal
+  //   5. Active multi-row selection (clears the selection)
   // The chat panel handles its own ESC inside ChatPanel.tsx. The handler stops
   // propagation when it consumes the event so chat doesn't ALSO close.
   useEffect(() => {
@@ -198,6 +201,12 @@ export default function HomePage() {
         e.stopImmediatePropagation();
         e.preventDefault();
         setBankImportOpen(false);
+        return;
+      }
+      if (salaryImportOpen) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setSalaryImportOpen(false);
         return;
       }
       if (catsOpen) {
@@ -224,7 +233,7 @@ export default function HomePage() {
     // capture=true so we run before any window-level listener registered later
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [bankImportOpen, catsOpen, modalOpen, selectedRows]);
+  }, [bankImportOpen, salaryImportOpen, catsOpen, modalOpen, selectedRows]);
 
   // Mobile back-button: each open overlay pushes a history entry. Pressing
   // "back" pops it and closes that overlay only — without leaving the app.
@@ -236,18 +245,24 @@ export default function HomePage() {
   // a ref so it always sees current state without re-subscribing.
   const overlayStateRef = useRef({
     bankImportOpen,
+    salaryImportOpen,
     catsOpen,
     modalOpen,
     selectedRows,
   });
   overlayStateRef.current = {
     bankImportOpen,
+    salaryImportOpen,
     catsOpen,
     modalOpen,
     selectedRows,
   };
   const anyOverlayOpen =
-    bankImportOpen || catsOpen || modalOpen || selectedRows.size > 0;
+    bankImportOpen ||
+    salaryImportOpen ||
+    catsOpen ||
+    modalOpen ||
+    selectedRows.size > 0;
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!anyOverlayOpen) return;
@@ -255,6 +270,7 @@ export default function HomePage() {
     const onPop = () => {
       const s = overlayStateRef.current;
       if (s.bankImportOpen) setBankImportOpen(false);
+      else if (s.salaryImportOpen) setSalaryImportOpen(false);
       else if (s.catsOpen) setCatsOpen(false);
       else if (s.modalOpen) {
         setModalOpen(false);
@@ -698,6 +714,42 @@ export default function HomePage() {
     await reload(true);
   };
 
+  /**
+   * Salary-import flow: every approved employee → one row in תזרים, dated
+   * today (the moment the import button was clicked), category "שכר עובדים",
+   * description = employee name, expense = net pay. status='future' so the
+   * row appears in the cash flow until marked "בוצע" when actually paid.
+   */
+  const handleSalaryImport = async (
+    rows: Array<{ name: string; net_pay: number }>
+  ): Promise<{ successCount: number; failedCount: number }> => {
+    const today = todayIso();
+    let successCount = 0;
+    let failedCount = 0;
+    for (const row of rows) {
+      try {
+        await createTransaction({
+          date: today,
+          category: 'שכר עובדים',
+          description: row.name,
+          income: null,
+          expense: row.net_pay,
+          frequency: '',
+          status: 'future',
+        });
+        successCount++;
+      } catch (err) {
+        console.error('Failed to import salary row:', row, err);
+        failedCount++;
+      }
+    }
+    if (successCount > 0) {
+      showToast(`נוספו ${successCount} משכורות לתזרים`);
+    }
+    await reload(true);
+    return { successCount, failedCount };
+  };
+
   const handleSaveCategories = async (list: string[]) => {
     if (!snapshot) return;
     const prev = snapshot.categories;
@@ -723,6 +775,7 @@ export default function HomePage() {
             endOfPeriodBalance={endOfMonthBalance}
             onUpdateOpening={handleUpdateOpening}
             onBankImport={() => setBankImportOpen(true)}
+            onSalaryImport={() => setSalaryImportOpen(true)}
           />
         )}
 
@@ -882,6 +935,11 @@ export default function HomePage() {
             existingTransactions={snapshot.transactions}
             onClose={() => setBankImportOpen(false)}
             onImport={handleBankImport}
+          />
+          <SalaryImportModal
+            open={salaryImportOpen}
+            onClose={() => setSalaryImportOpen(false)}
+            onImport={handleSalaryImport}
           />
         </>
       )}
