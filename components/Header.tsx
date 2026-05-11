@@ -162,6 +162,23 @@ export function Header({
             📄 ייבוא משכורות
           </button>
           <ThemeToggle />
+          <button
+            onClick={() => {
+              if (!confirm('לסגור את האפליקציה?')) return;
+              // window.close() only works for tabs opened by JS. For
+              // user-opened tabs the call is silently ignored, so navigate
+              // to about:blank as a guaranteed-clear fallback — the user
+              // can then close the (now-empty) tab.
+              try {
+                window.close();
+              } catch {}
+              window.location.href = 'about:blank';
+            }}
+            className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm font-medium flex items-center gap-1"
+            title="סגור את האפליקציה"
+          >
+            🚪 יציאה
+          </button>
         </div>
 
         {balanceUpdatedAt && (
