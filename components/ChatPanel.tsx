@@ -115,17 +115,25 @@ export function ChatPanel() {
     }
   }, [open, messages.length]);
 
-  // ESC closes the chat. The page-level ESC handler runs first in capture
-  // phase and stops propagation when ANY modal is open, so this only fires
-  // when the chat is the topmost interactive layer.
+  // ESC behavior — layered:
+  //   1. If messages are selected → clear selection (don't close chat yet)
+  //   2. Otherwise → close the chat
+  // The page-level ESC handler runs first in capture phase and stops
+  // propagation when ANY transaction-modal is open, so this only fires when
+  // the chat is the topmost interactive layer.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Escape') return;
+      if (selectedIds.size > 0) {
+        setSelectedIds(new Set());
+        return;
+      }
+      setOpen(false);
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [open]);
+  }, [open, selectedIds]);
 
   // Mobile back-button: when chat is open and no modal is on top, pressing
   // back closes the chat instead of leaving the app.
@@ -380,19 +388,27 @@ export function ChatPanel() {
           </div>
 
           {selectMode && (
-            <div className="border-t dark:border-slate-700 p-2 bg-amber-50 dark:bg-amber-900/30 flex items-center justify-between text-sm">
+            <div className="border-t dark:border-slate-700 p-2 bg-amber-50 dark:bg-amber-900/30 flex items-center justify-between text-sm gap-2">
               <span className="text-slate-700 dark:text-slate-200">
-                {selectedIds.size > 0
-                  ? `נבחרו ${selectedIds.size} הודעות`
-                  : 'לחץ על הודעה כדי לבחור'}
+                נבחרו {selectedIds.size} הודעות
               </span>
-              <button
-                onClick={bulkDelete}
-                disabled={selectedIds.size === 0 || bulkDeleting}
-                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-xs"
-              >
-                {bulkDeleting ? 'מוחק...' : `🗑 מחק ${selectedIds.size || ''}`}
-              </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  disabled={bulkDeleting}
+                  className="px-2 py-1 border dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 text-xs"
+                  title="ביטול בחירה (ESC)"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={bulkDelete}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-xs"
+                >
+                  {bulkDeleting ? 'מוחק...' : `🗑 מחק ${selectedIds.size}`}
+                </button>
+              </div>
             </div>
           )}
 
