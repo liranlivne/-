@@ -2,10 +2,13 @@ import type { Metadata } from 'next';
 import { Heebo } from 'next/font/google';
 import './globals.css';
 
+// Only ship the weights actually referenced in the codebase:
+//   400 (font-normal) / 500 (font-medium) / 700 (font-bold).
+// 300, 600, 800 were loaded but never used — cuts ~3 font files (~80KB).
 const heebo = Heebo({
   variable: '--font-heebo',
   subsets: ['hebrew', 'latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: ['400', '500', '700'],
 });
 
 export const metadata: Metadata = {

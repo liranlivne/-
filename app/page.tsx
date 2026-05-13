@@ -24,6 +24,7 @@ import {
 } from '@/lib/apiClient';
 import { computeRunningBalances } from '@/lib/balance';
 import { todayIso, addMonthsIso, formatDateHe } from '@/lib/dateUtils';
+import { statusAfterDateChange } from '@/lib/transactionStatus';
 import {
   pushUndo,
   performUndo,
@@ -329,13 +330,11 @@ export default function HomePage() {
       const prev = editing;
       const prevStatus = prev.status === 'opening' ? 'future' : prev.status;
 
-      // Auto-move a past row back to future if its new date is today or later.
-      // The past section represents already-executed rows; a future date means
-      // "not executed yet", so the row belongs in תזרים.
-      const movingPastToFuture =
-        prevStatus === 'past' && data.date >= todayIso();
-      const nextStatus: 'future' | 'past' = movingPastToFuture ? 'future' : prevStatus;
-      const nextDone = movingPastToFuture ? false : prev.done;
+      const {
+        status: nextStatus,
+        done: nextDone,
+        flippedToFuture: movingPastToFuture,
+      } = statusAfterDateChange(prevStatus, prev.done, data.date);
 
       await updateTransactionApi(editing.rowNumber, {
         ...data,
@@ -655,21 +654,20 @@ export default function HomePage() {
 
   const handleBulkChangeDate = async (newDate: string) => {
     if (!snapshot || selectedRows.size === 0) return;
-    const today = todayIso();
-    const movingPastToFuture = newDate >= today;
     let successCount = 0;
     for (const row of selectedRows) {
       try {
         const tx = snapshot.transactions.find((t) => t.rowNumber === row);
-        const wasPast = tx?.status === 'past';
-        // If a past row is being moved to today/future, restore it to תזרים
-        // (mirrors the single-row edit behavior in handleSave).
-        if (wasPast && movingPastToFuture) {
-          await updateTransactionApi(row, {
-            date: newDate,
-            status: 'future',
-            done: false,
-          });
+        const prevStatus = tx?.status === 'past' ? 'past' : 'future';
+        const { status, done, flippedToFuture } = statusAfterDateChange(
+          prevStatus,
+          tx?.done ?? false,
+          newDate
+        );
+        if (flippedToFuture) {
+          // Only past→future flip needs to overwrite status/done; otherwise
+          // leave them as-is to avoid wiping a manually-flipped "done".
+          await updateTransactionApi(row, { date: newDate, status, done });
         } else {
           await updateTransactionApi(row, { date: newDate });
         }
