@@ -202,7 +202,7 @@ export function TransactionModal({
         className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-[#2D3A8C] text-white px-4 py-3 flex items-center justify-between rounded-t-lg">
+        <div className="bg-[#2D3A8C] text-white px-4 py-2.5 flex items-center justify-between rounded-t-lg">
           <h2 className="font-bold text-lg">
             {mode === 'create'
               ? isCreatingPast
@@ -216,20 +216,35 @@ export function TransactionModal({
           <button onClick={onClose} className="text-xl leading-none hover:opacity-75">×</button>
         </div>
 
-        <div className="p-4 space-y-3">
-          <label className="flex flex-col">
-            <span className="text-sm text-slate-600 dark:text-slate-400 mb-1">תאריך</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || duplicating || splitting}
-            />
-          </label>
+        <div className="p-3.5 space-y-2.5">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex flex-col">
+              <span className="text-sm text-slate-600 dark:text-slate-400 mb-0.5">תאריך</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
+                disabled={saving || deleting || restoring || duplicating || splitting}
+              />
+            </label>
+            <label className="flex flex-col">
+              <span className="text-sm text-slate-600 dark:text-slate-400 mb-0.5">תדירות</span>
+              <select
+                value={frequency}
+                onChange={(e) => setFrequency(e.target.value as Frequency)}
+                className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
+                disabled={saving || deleting || restoring || duplicating || splitting}
+              >
+                <option value="">חד פעמי</option>
+                <option value="חודשי">חודשי</option>
+                <option value="דו-חודשי">דו-חודשי</option>
+              </select>
+            </label>
+          </div>
 
           <label className="flex flex-col">
-            <span className="text-sm text-slate-600 dark:text-slate-400 mb-1">קטגוריה</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400 mb-0.5">קטגוריה</span>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -246,7 +261,7 @@ export function TransactionModal({
           </label>
 
           <label className="flex flex-col">
-            <span className="text-sm text-slate-600 dark:text-slate-400 mb-1">תיאור</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400 mb-0.5">תיאור</span>
             <input
               type="text"
               value={description}
@@ -258,7 +273,7 @@ export function TransactionModal({
 
           <div className="grid grid-cols-2 gap-2">
             <label className="flex flex-col">
-              <span className="text-sm text-[color:var(--color-income)] mb-1">הכנסה</span>
+              <span className="text-sm text-[color:var(--color-income)] mb-0.5">הכנסה</span>
               <input
                 type="number"
                 value={income}
@@ -269,7 +284,7 @@ export function TransactionModal({
               />
             </label>
             <label className="flex flex-col">
-              <span className="text-sm text-[color:var(--color-expense)] mb-1">הוצאה</span>
+              <span className="text-sm text-[color:var(--color-expense)] mb-0.5">הוצאה</span>
               <input
                 type="number"
                 value={expense}
@@ -281,22 +296,8 @@ export function TransactionModal({
             </label>
           </div>
 
-          <label className="flex flex-col">
-            <span className="text-sm text-slate-600 dark:text-slate-400 mb-1">תדירות</span>
-            <select
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value as Frequency)}
-              className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || duplicating || splitting}
-            >
-              <option value="">חד פעמי</option>
-              <option value="חודשי">חודשי</option>
-              <option value="דו-חודשי">דו-חודשי</option>
-            </select>
-          </label>
-
           <div className="flex flex-col">
-            <span className="text-sm text-slate-600 dark:text-slate-400 mb-1">קובץ מצורף</span>
+            <span className="text-sm text-slate-600 dark:text-slate-400 mb-0.5">קובץ מצורף</span>
             <ImageUploader
               value={imageUrl}
               onChange={setImageUrl}
@@ -305,7 +306,7 @@ export function TransactionModal({
           </div>
         </div>
 
-        <div className="border-t dark:border-slate-700 p-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="border-t dark:border-slate-700 p-3.5 flex flex-wrap items-center justify-between gap-2">
           {mode === 'edit' && onDelete && (
             <button
               onClick={del}
