@@ -29,8 +29,6 @@ interface Props {
   onRestoreToFuture?: () => Promise<void>;
   /** Duplicate the current row into a new row with the same fields. Only in edit mode. */
   onDuplicate?: () => Promise<void>;
-  /** Split the current row into a paid part (past) + remaining (future). Only future rows. */
-  onPartialPayment?: () => Promise<void>;
   /** Open the multi-bucket split modal (each bucket: date + amount + optional "paid"). */
   onOpenSplit?: () => void;
 }
@@ -46,7 +44,6 @@ export function TransactionModal({
   onDelete,
   onRestoreToFuture,
   onDuplicate,
-  onPartialPayment,
   onOpenSplit,
 }: Props) {
   const [date, setDate] = useState(todayIso());
@@ -60,7 +57,6 @@ export function TransactionModal({
   const [deleting, setDeleting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
-  const [splitting, setSplitting] = useState(false);
 
   // Only reset the form when the modal transitions from closed→open (or when switching
   // to editing a different row). Do NOT reset on every re-render when parent props
@@ -82,7 +78,6 @@ export function TransactionModal({
     setDeleting(false);
     setRestoring(false);
     setDuplicating(false);
-    setSplitting(false);
 
     if (initial) {
       setDate(initial.date);
@@ -184,18 +179,6 @@ export function TransactionModal({
     }
   };
 
-  const split = async () => {
-    if (!onPartialPayment) return;
-    setSplitting(true);
-    try {
-      await onPartialPayment();
-    } catch (err) {
-      alert('שגיאה: ' + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setSplitting(false);
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
@@ -228,7 +211,7 @@ export function TransactionModal({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-                disabled={saving || deleting || restoring || duplicating || splitting}
+                disabled={saving || deleting || restoring || duplicating}
               />
             </label>
             <label className="flex flex-col">
@@ -237,7 +220,7 @@ export function TransactionModal({
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value as Frequency)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-                disabled={saving || deleting || restoring || duplicating || splitting}
+                disabled={saving || deleting || restoring || duplicating}
               >
                 <option value="">חד פעמי</option>
                 <option value="חודשי">חודשי</option>
@@ -252,7 +235,7 @@ export function TransactionModal({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
             >
               <option value="">-- בחר --</option>
               {categories.map((c) => (
@@ -270,7 +253,7 @@ export function TransactionModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
             />
           </label>
 
@@ -282,7 +265,7 @@ export function TransactionModal({
                 value={income}
                 onChange={(e) => onIncomeChange(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded num"
-                disabled={saving || deleting || restoring || duplicating || splitting}
+                disabled={saving || deleting || restoring || duplicating}
                 placeholder="0"
               />
             </label>
@@ -293,7 +276,7 @@ export function TransactionModal({
                 value={expense}
                 onChange={(e) => onExpenseChange(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded num"
-                disabled={saving || deleting || restoring || duplicating || splitting}
+                disabled={saving || deleting || restoring || duplicating}
                 placeholder="0"
               />
             </label>
@@ -304,7 +287,7 @@ export function TransactionModal({
             <ImageUploader
               value={imageUrl}
               onChange={setImageUrl}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
             />
           </div>
         </div>
@@ -313,7 +296,7 @@ export function TransactionModal({
           {mode === 'edit' && onDelete && (
             <button
               onClick={del}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
               className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm disabled:opacity-50"
             >
               {deleting ? 'מוחק...' : '🗑 מחק שורה'}
@@ -322,7 +305,7 @@ export function TransactionModal({
           {mode === 'edit' && initial?.status === 'past' && onRestoreToFuture && (
             <button
               onClick={restore}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
               className="px-3 py-2 bg-[#F0A500] text-white rounded hover:bg-[#d49300] text-sm disabled:opacity-50 font-medium"
               title="החזר את השורה לתזרים (תיקון טעות של 'בוצע')"
             >
@@ -332,27 +315,17 @@ export function TransactionModal({
           {mode === 'edit' && onDuplicate && (
             <button
               onClick={duplicate}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
               className="px-3 py-2 border-2 border-[#2D3A8C] text-[#2D3A8C] dark:text-[#7583D8] dark:border-[#7583D8] rounded hover:bg-[#2D3A8C]/5 text-sm disabled:opacity-50 font-medium"
               title="צור עותק של השורה הזו"
             >
               {duplicating ? 'משכפל...' : '📋 שכפל'}
             </button>
           )}
-          {mode === 'edit' && initial?.status !== 'past' && onPartialPayment && (
-            <button
-              onClick={split}
-              disabled={saving || deleting || restoring || duplicating || splitting}
-              className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm disabled:opacity-50 font-medium"
-              title="שולם חלק מהסכום: יעבור לעבר את הסכום ששולם, וישאיר ביתרת התזרים את ההפרש"
-            >
-              {splitting ? '...' : '💰 שולם חלקית'}
-            </button>
-          )}
           {mode === 'edit' && initial?.status !== 'past' && onOpenSplit && (
             <button
               onClick={onOpenSplit}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
               className="px-3 py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] text-sm disabled:opacity-50 font-medium"
               title="פצל את הסכום למספר תשלומים — כל אחד בתאריך משלו. אפשר לסמן שחלקם כבר שולמו."
             >
@@ -362,14 +335,14 @@ export function TransactionModal({
           <div className="flex gap-2 mr-auto">
             <button
               onClick={onClose}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
               className="px-4 py-2 border dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
             >
               ביטול
             </button>
             <button
               onClick={save}
-              disabled={saving || deleting || restoring || duplicating || splitting}
+              disabled={saving || deleting || restoring || duplicating}
               className="px-4 py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] disabled:opacity-50 font-medium"
             >
               {saving ? 'שומר...' : 'שמור'}

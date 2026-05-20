@@ -515,76 +515,6 @@ export default function HomePage() {
   };
 
   /**
-   * Partial payment: ask how much was paid, then:
-   *   - reduce the original (future) row's amount by that sum + append note
-   *   - create a new past row with the paid amount + a connecting note
-   */
-  const handlePartialPayment = async () => {
-    if (!editing) return;
-    const src = editing;
-    if (src.status === 'past') {
-      alert('שורה שכבר בעבר - לא ניתן לפצל לתשלום חלקי.');
-      return;
-    }
-    const isIncome = src.income !== null && src.income > 0;
-    const total = isIncome ? src.income! : (src.expense ?? 0);
-    if (!total || total <= 0) {
-      alert('אין סכום בשורה. עדכן הכנסה או הוצאה לפני פיצול.');
-      return;
-    }
-    const input = window.prompt(
-      `הסכום הכולל: ${total.toLocaleString('he-IL')} ₪\nכמה שולם בפועל?`
-    );
-    if (input == null) return; // cancelled
-    const paid = Number(String(input).replace(/[,₪\s]/g, ''));
-    if (!Number.isFinite(paid) || paid <= 0) {
-      alert('סכום לא תקין');
-      return;
-    }
-    if (paid >= total) {
-      alert(
-        `הסכום ששולם (${paid}) גדול או שווה לסכום הכולל (${total}). אם הכל שולם, השתמש ב"בוצע" במקום.`
-      );
-      return;
-    }
-    const remaining = total - paid;
-    const today = todayIso();
-    const todayHe = formatDateHe(today);
-    const noteForOriginal = `שולם ע"ח ${paid.toLocaleString('he-IL')}₪ ב-${todayHe}`;
-    const noteForPast = `תשלום ע"ח (מתוך ${total.toLocaleString('he-IL')}₪)`;
-
-    // 1. Update original row: reduced amount + appended note (still in תזרים)
-    const newDescription = src.description
-      ? `${src.description} | ${noteForOriginal}`
-      : noteForOriginal;
-    await updateTransactionApi(src.rowNumber, {
-      income: isIncome ? remaining : null,
-      expense: isIncome ? null : remaining,
-      description: newDescription,
-    });
-
-    // 2. Create the past row with what was paid
-    await createTransaction({
-      date: today,
-      category: src.category,
-      description: src.description ? `${src.description} - ${noteForPast}` : noteForPast,
-      income: isIncome ? paid : null,
-      expense: isIncome ? null : paid,
-      frequency: '',
-      status: 'past',
-      imageUrl: null,
-    });
-
-    // Note: not added to undo stack (multi-step operation; user can fix manually)
-    showToast(
-      `שולם ${paid.toLocaleString('he-IL')}₪ • נותר ${remaining.toLocaleString('he-IL')}₪`
-    );
-    setModalOpen(false);
-    setEditing(null);
-    await reload(true);
-  };
-
-  /**
    * Open the split modal for the currently-edited row. Closes TransactionModal
    * so the user lands on the split UI cleanly. The actual mutations happen in
    * `executeSplit` once the user confirms.
@@ -1014,9 +944,6 @@ export default function HomePage() {
               editing && editing.status === 'past' ? handleRestoreToFuture : undefined
             }
             onDuplicate={editing ? handleDuplicate : undefined}
-            onPartialPayment={
-              editing && editing.status !== 'past' ? handlePartialPayment : undefined
-            }
             onOpenSplit={
               editing && editing.status !== 'past' ? handleOpenSplit : undefined
             }
