@@ -69,7 +69,6 @@ function describeFilters(f: FiltersState): string {
 export default function HomePage() {
   const [snapshot, setSnapshot] = useState<SheetSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FiltersState>(emptyFilters);
   const [modalOpen, setModalOpen] = useState(false);
@@ -92,8 +91,7 @@ export default function HomePage() {
   // ---------- Data loading ----------
 
   const reload = useCallback(async (background = false) => {
-    if (background) setRefreshing(true);
-    else setLoading(true);
+    if (!background) setLoading(true);
     setError(null);
     try {
       const data = await fetchSnapshot();
@@ -102,7 +100,6 @@ export default function HomePage() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 

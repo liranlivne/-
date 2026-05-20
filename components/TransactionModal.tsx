@@ -101,6 +101,11 @@ export function TransactionModal({
 
   if (!open) return null;
 
+  /** True while any of the row-level actions is in flight. Used to disable
+   *  every input/button in the modal at once, so we can't kick off a second
+   *  action over the first. */
+  const isBusy = saving || deleting || restoring || duplicating;
+
   const isCreatingPast = mode === 'create' && createContext === 'past';
 
   const onIncomeChange = (v: string) => {
@@ -211,7 +216,7 @@ export function TransactionModal({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-                disabled={saving || deleting || restoring || duplicating}
+                disabled={isBusy}
               />
             </label>
             <label className="flex flex-col">
@@ -220,7 +225,7 @@ export function TransactionModal({
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value as Frequency)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-                disabled={saving || deleting || restoring || duplicating}
+                disabled={isBusy}
               >
                 <option value="">חד פעמי</option>
                 <option value="חודשי">חודשי</option>
@@ -235,7 +240,7 @@ export function TransactionModal({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
             >
               <option value="">-- בחר --</option>
               {categories.map((c) => (
@@ -253,7 +258,7 @@ export function TransactionModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded"
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
             />
           </label>
 
@@ -265,7 +270,7 @@ export function TransactionModal({
                 value={income}
                 onChange={(e) => onIncomeChange(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded num"
-                disabled={saving || deleting || restoring || duplicating}
+                disabled={isBusy}
                 placeholder="0"
               />
             </label>
@@ -276,7 +281,7 @@ export function TransactionModal({
                 value={expense}
                 onChange={(e) => onExpenseChange(e.target.value)}
                 className="px-3 py-2 border dark:border-slate-600 dark:bg-slate-700 rounded num"
-                disabled={saving || deleting || restoring || duplicating}
+                disabled={isBusy}
                 placeholder="0"
               />
             </label>
@@ -287,7 +292,7 @@ export function TransactionModal({
             <ImageUploader
               value={imageUrl}
               onChange={setImageUrl}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
             />
           </div>
         </div>
@@ -296,7 +301,7 @@ export function TransactionModal({
           {mode === 'edit' && onDelete && (
             <button
               onClick={del}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
               className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm disabled:opacity-50"
             >
               {deleting ? 'מוחק...' : '🗑 מחק שורה'}
@@ -305,7 +310,7 @@ export function TransactionModal({
           {mode === 'edit' && initial?.status === 'past' && onRestoreToFuture && (
             <button
               onClick={restore}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
               className="px-3 py-2 bg-[#F0A500] text-white rounded hover:bg-[#d49300] text-sm disabled:opacity-50 font-medium"
               title="החזר את השורה לתזרים (תיקון טעות של 'בוצע')"
             >
@@ -315,7 +320,7 @@ export function TransactionModal({
           {mode === 'edit' && onDuplicate && (
             <button
               onClick={duplicate}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
               className="px-3 py-2 border-2 border-[#2D3A8C] text-[#2D3A8C] dark:text-[#7583D8] dark:border-[#7583D8] rounded hover:bg-[#2D3A8C]/5 text-sm disabled:opacity-50 font-medium"
               title="צור עותק של השורה הזו"
             >
@@ -325,7 +330,7 @@ export function TransactionModal({
           {mode === 'edit' && initial?.status !== 'past' && onOpenSplit && (
             <button
               onClick={onOpenSplit}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
               className="px-3 py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] text-sm disabled:opacity-50 font-medium"
               title="פצל את הסכום למספר תשלומים — כל אחד בתאריך משלו. אפשר לסמן שחלקם כבר שולמו."
             >
@@ -335,14 +340,14 @@ export function TransactionModal({
           <div className="flex gap-2 mr-auto">
             <button
               onClick={onClose}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
               className="px-4 py-2 border dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
             >
               ביטול
             </button>
             <button
               onClick={save}
-              disabled={saving || deleting || restoring || duplicating}
+              disabled={isBusy}
               className="px-4 py-2 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] disabled:opacity-50 font-medium"
             >
               {saving ? 'שומר...' : 'שמור'}

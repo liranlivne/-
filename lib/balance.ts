@@ -46,20 +46,6 @@ export function computeRunningBalances(
   return result;
 }
 
-/**
- * Sum all future income/expense (for simple summaries).
- */
-export function summarizeFuture(transactions: Transaction[]) {
-  let income = 0;
-  let expense = 0;
-  for (const t of transactions) {
-    if (t.status === 'past') continue;
-    income += t.income ?? 0;
-    expense += t.expense ?? 0;
-  }
-  return { income, expense, net: income - expense };
-}
-
 /** Format a number as Hebrew shekels with thousand separators. */
 export function formatShekel(n: number | null | undefined): string {
   if (n === null || n === undefined) return '';

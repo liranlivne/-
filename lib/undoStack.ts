@@ -119,16 +119,6 @@ export function peekRedoLabel(): string | null {
   return redoStack.length > 0 ? redoStack[redoStack.length - 1].label : null;
 }
 
-// Back-compat alias - the old code used these names
-export const subscribeUndo = subscribeHistory;
-export const peekLabel = peekUndoLabel;
-
-export function clearHistory() {
-  undoStack.length = 0;
-  redoStack.length = 0;
-  notify();
-}
-
 // ---------- Undo ----------
 
 /**

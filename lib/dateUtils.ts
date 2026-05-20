@@ -70,11 +70,6 @@ export function nextRecurrenceDate(originalIso: string, frequency: string): stri
   return originalIso;
 }
 
-/** True if ISO date is strictly before today. */
-export function isPastDate(iso: string): boolean {
-  return iso < todayIso();
-}
-
 /** True if ISO date equals today. */
 export function isToday(iso: string): boolean {
   return iso === todayIso();

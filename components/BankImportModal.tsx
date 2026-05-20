@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import type { Transaction } from '@/lib/types';
-import { formatDateHe } from '@/lib/dateUtils';
 import { formatShekel } from '@/lib/balance';
 
 interface ParsedTransaction {

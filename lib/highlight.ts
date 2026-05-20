@@ -1,8 +1,7 @@
 // "Recently updated" highlight logic.
 // A row is highlighted for 24 hours after its `updatedAt` timestamp.
 
-export const HIGHLIGHT_HOURS = 24;
-export const HIGHLIGHT_MS = HIGHLIGHT_HOURS * 60 * 60 * 1000;
+const HIGHLIGHT_MS = 24 * 60 * 60 * 1000;
 
 export function isRecentlyUpdated(updatedAt: string | null): boolean {
   if (!updatedAt) return false;

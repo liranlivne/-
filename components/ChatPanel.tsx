@@ -189,17 +189,6 @@ export function ChatPanel() {
     }
   };
 
-  const deleteMessage = async (rowNumber: number) => {
-    if (!confirm('למחוק את ההודעה?')) return;
-    try {
-      const res = await fetch(`/api/chat/${rowNumber}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('delete failed');
-      await loadMessages();
-    } catch (err) {
-      alert('שגיאה במחיקה: ' + (err instanceof Error ? err.message : String(err)));
-    }
-  };
-
   const toggleSelection = (rowNumber: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
