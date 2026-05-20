@@ -11,6 +11,7 @@ import { ExportButton } from '@/components/ExportButton';
 import { ChatPanel } from '@/components/ChatPanel';
 import { BankImportModal } from '@/components/BankImportModal';
 import { SalaryImportModal } from '@/components/SalaryImportModal';
+import { SplitTransactionModal, type SplitBucketSpec } from '@/components/SplitTransactionModal';
 import { BulkActionBar } from '@/components/BulkActionBar';
 import { buildCsv, downloadCsv, defaultCsvFilename, printTransactions } from '@/lib/export';
 import {
@@ -76,6 +77,7 @@ export default function HomePage() {
   const [createAsPast, setCreateAsPast] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
   const [salaryImportOpen, setSalaryImportOpen] = useState(false);
+  const [splittingRow, setSplittingRow] = useState<Transaction | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [catsOpen, setCatsOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -111,12 +113,19 @@ export default function HomePage() {
   // Auto-refresh every 30s. Pause while a modal is open so background
   // refreshes don't disturb the user's typing.
   useEffect(() => {
-    if (modalOpen || catsOpen || bankImportOpen || salaryImportOpen) return;
+    if (
+      modalOpen ||
+      catsOpen ||
+      bankImportOpen ||
+      salaryImportOpen ||
+      splittingRow
+    )
+      return;
     const id = setInterval(() => {
       reload(true);
     }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [reload, modalOpen, catsOpen, bankImportOpen, salaryImportOpen]);
+  }, [reload, modalOpen, catsOpen, bankImportOpen, salaryImportOpen, splittingRow]);
 
   // Re-render when undo/redo stacks change
   useEffect(() => {
@@ -210,6 +219,12 @@ export default function HomePage() {
         setSalaryImportOpen(false);
         return;
       }
+      if (splittingRow) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        setSplittingRow(null);
+        return;
+      }
       if (catsOpen) {
         e.stopImmediatePropagation();
         e.preventDefault();
@@ -234,7 +249,7 @@ export default function HomePage() {
     // capture=true so we run before any window-level listener registered later
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [bankImportOpen, salaryImportOpen, catsOpen, modalOpen, selectedRows]);
+  }, [bankImportOpen, salaryImportOpen, splittingRow, catsOpen, modalOpen, selectedRows]);
 
   // Mobile back-button: each open overlay pushes a history entry. Pressing
   // "back" pops it and closes that overlay only — without leaving the app.
@@ -247,6 +262,7 @@ export default function HomePage() {
   const overlayStateRef = useRef({
     bankImportOpen,
     salaryImportOpen,
+    splittingRow,
     catsOpen,
     modalOpen,
     selectedRows,
@@ -254,6 +270,7 @@ export default function HomePage() {
   overlayStateRef.current = {
     bankImportOpen,
     salaryImportOpen,
+    splittingRow,
     catsOpen,
     modalOpen,
     selectedRows,
@@ -261,6 +278,7 @@ export default function HomePage() {
   const anyOverlayOpen =
     bankImportOpen ||
     salaryImportOpen ||
+    !!splittingRow ||
     catsOpen ||
     modalOpen ||
     selectedRows.size > 0;
@@ -272,6 +290,7 @@ export default function HomePage() {
       const s = overlayStateRef.current;
       if (s.bankImportOpen) setBankImportOpen(false);
       else if (s.salaryImportOpen) setSalaryImportOpen(false);
+      else if (s.splittingRow) setSplittingRow(null);
       else if (s.catsOpen) setCatsOpen(false);
       else if (s.modalOpen) {
         setModalOpen(false);
@@ -566,87 +585,80 @@ export default function HomePage() {
   };
 
   /**
-   * Schedule split: take an upcoming תזרים row and break it into TWO future
-   * rows on different dates. Distinct from `handlePartialPayment` (which
-   * records a past payment); here both halves remain future, only the
-   * cash-flow timing changes.
-   *
-   * Flow: ask for the date of the new row, then how much of the total goes
-   * to that new row. Original row keeps the remainder on its original date.
+   * Open the split modal for the currently-edited row. Closes TransactionModal
+   * so the user lands on the split UI cleanly. The actual mutations happen in
+   * `executeSplit` once the user confirms.
    */
-  const handleSplitToFutureDate = async () => {
+  const handleOpenSplit = () => {
     if (!editing) return;
-    const src = editing;
-    if (src.status === 'past') {
-      alert('שורה שכבר בעבר - לא ניתן לפצל לתאריך אחר.');
+    if (editing.status === 'past') {
+      alert('שורה שכבר בעבר - לא ניתן לפצל.');
       return;
     }
-    const isIncome = src.income !== null && src.income > 0;
-    const total = isIncome ? src.income! : (src.expense ?? 0);
+    const total =
+      editing.income !== null && editing.income > 0
+        ? editing.income
+        : editing.expense ?? 0;
     if (!total || total <= 0) {
       alert('אין סכום בשורה. עדכן הכנסה או הוצאה לפני פיצול.');
       return;
     }
-
-    // 1. Date for the new row
-    const dateInput = window.prompt(
-      `מתי תהיה השורה החדשה? (YYYY-MM-DD)\nהתאריך הנוכחי: ${src.date}`,
-      src.date
-    );
-    if (dateInput == null) return;
-    const newDate = dateInput.trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-      alert('תאריך לא תקין. השתמש בפורמט YYYY-MM-DD (למשל 2026-06-15).');
-      return;
-    }
-
-    // 2. Amount for the new row — default to half, user can override
-    const defaultSplit = Math.round(total / 2);
-    const amountInput = window.prompt(
-      `כמה לפצל לתאריך ${newDate}?\nסה"כ בשורה: ${total.toLocaleString('he-IL')} ₪`,
-      String(defaultSplit)
-    );
-    if (amountInput == null) return;
-    const splitAmount = Number(String(amountInput).replace(/[,₪\s]/g, ''));
-    if (!Number.isFinite(splitAmount) || splitAmount <= 0) {
-      alert('סכום לא תקין');
-      return;
-    }
-    if (splitAmount >= total) {
-      alert(
-        `הסכום לפיצול (${splitAmount}) חייב להיות קטן מסה"כ השורה (${total}). ` +
-          `אם רצית להזיז את כל הסכום, ערוך את התאריך בשורה הנוכחית.`
-      );
-      return;
-    }
-    const remaining = total - splitAmount;
-
-    // 1. Reduce original row to the remainder; date stays the same
-    await updateTransactionApi(src.rowNumber, {
-      income: isIncome ? remaining : null,
-      expense: isIncome ? null : remaining,
-    });
-
-    // 2. Create new future row on the chosen date with the split amount.
-    // No frequency carry-over — the split is a one-off reschedule.
-    await createTransaction({
-      date: newDate,
-      category: src.category,
-      description: src.description,
-      income: isIncome ? splitAmount : null,
-      expense: isIncome ? null : splitAmount,
-      frequency: '',
-      status: 'future',
-      imageUrl: null,
-    });
-
-    // Note: not added to undo stack (multi-step; reversible by editing both rows).
-    showToast(
-      `פוצל: ${remaining.toLocaleString('he-IL')}₪ ב-${formatDateHe(src.date)} + ` +
-        `${splitAmount.toLocaleString('he-IL')}₪ ב-${formatDateHe(newDate)}`
-    );
+    setSplittingRow(editing);
     setModalOpen(false);
     setEditing(null);
+  };
+
+  /**
+   * Apply a multi-bucket split. Strategy: update the source row in place to
+   * bucket[0] (preserves its rowNumber + attached image), then create new
+   * rows for buckets 1..N. Each bucket can be marked `paid` — paid buckets
+   * land in past (status='past'), un-paid buckets stay in תזרים (future).
+   * No undo entry (multi-step; user can fix by editing rows manually).
+   */
+  const executeSplit = async (buckets: SplitBucketSpec[]) => {
+    if (!splittingRow) return;
+    const src = splittingRow;
+    const isIncome = src.income !== null && src.income > 0;
+    const total = isIncome ? src.income! : src.expense ?? 0;
+    const sum = buckets.reduce((s, b) => s + b.amount, 0);
+    if (Math.abs(sum - total) > 0.5) {
+      throw new Error(`סך הסכומים (${sum}) לא תואם לסה"כ השורה (${total}).`);
+    }
+
+    const [first, ...rest] = buckets;
+
+    // 1. Mutate the source row into bucket[0]
+    await updateTransactionApi(src.rowNumber, {
+      date: first.date,
+      income: isIncome ? first.amount : null,
+      expense: isIncome ? null : first.amount,
+      status: first.paid ? 'past' : 'future',
+      done: first.paid,
+    });
+
+    // 2. Create new rows for the rest. Sequential — Google Sheets append
+    // can race when fired in parallel; the latency cost (a few hundred ms)
+    // is acceptable for the small bucket counts this UI generates.
+    for (const b of rest) {
+      await createTransaction({
+        date: b.date,
+        category: src.category,
+        description: src.description,
+        income: isIncome ? b.amount : null,
+        expense: isIncome ? null : b.amount,
+        frequency: '',
+        status: b.paid ? 'past' : 'future',
+        imageUrl: null,
+      });
+    }
+
+    const paidCount = buckets.filter((b) => b.paid).length;
+    showToast(
+      paidCount > 0
+        ? `פוצל ל-${buckets.length} שורות, ${paidCount} בעבר`
+        : `פוצל ל-${buckets.length} שורות`
+    );
+    setSplittingRow(null);
     await reload(true);
   };
 
@@ -1005,8 +1017,8 @@ export default function HomePage() {
             onPartialPayment={
               editing && editing.status !== 'past' ? handlePartialPayment : undefined
             }
-            onSplitToFutureDate={
-              editing && editing.status !== 'past' ? handleSplitToFutureDate : undefined
+            onOpenSplit={
+              editing && editing.status !== 'past' ? handleOpenSplit : undefined
             }
           />
           <CategoryManager
@@ -1026,6 +1038,12 @@ export default function HomePage() {
             open={salaryImportOpen}
             onClose={() => setSalaryImportOpen(false)}
             onImport={handleSalaryImport}
+          />
+          <SplitTransactionModal
+            open={!!splittingRow}
+            source={splittingRow}
+            onClose={() => setSplittingRow(null)}
+            onConfirm={executeSplit}
           />
         </>
       )}
