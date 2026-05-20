@@ -565,6 +565,91 @@ export default function HomePage() {
     await reload(true);
   };
 
+  /**
+   * Schedule split: take an upcoming תזרים row and break it into TWO future
+   * rows on different dates. Distinct from `handlePartialPayment` (which
+   * records a past payment); here both halves remain future, only the
+   * cash-flow timing changes.
+   *
+   * Flow: ask for the date of the new row, then how much of the total goes
+   * to that new row. Original row keeps the remainder on its original date.
+   */
+  const handleSplitToFutureDate = async () => {
+    if (!editing) return;
+    const src = editing;
+    if (src.status === 'past') {
+      alert('שורה שכבר בעבר - לא ניתן לפצל לתאריך אחר.');
+      return;
+    }
+    const isIncome = src.income !== null && src.income > 0;
+    const total = isIncome ? src.income! : (src.expense ?? 0);
+    if (!total || total <= 0) {
+      alert('אין סכום בשורה. עדכן הכנסה או הוצאה לפני פיצול.');
+      return;
+    }
+
+    // 1. Date for the new row
+    const dateInput = window.prompt(
+      `מתי תהיה השורה החדשה? (YYYY-MM-DD)\nהתאריך הנוכחי: ${src.date}`,
+      src.date
+    );
+    if (dateInput == null) return;
+    const newDate = dateInput.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+      alert('תאריך לא תקין. השתמש בפורמט YYYY-MM-DD (למשל 2026-06-15).');
+      return;
+    }
+
+    // 2. Amount for the new row — default to half, user can override
+    const defaultSplit = Math.round(total / 2);
+    const amountInput = window.prompt(
+      `כמה לפצל לתאריך ${newDate}?\nסה"כ בשורה: ${total.toLocaleString('he-IL')} ₪`,
+      String(defaultSplit)
+    );
+    if (amountInput == null) return;
+    const splitAmount = Number(String(amountInput).replace(/[,₪\s]/g, ''));
+    if (!Number.isFinite(splitAmount) || splitAmount <= 0) {
+      alert('סכום לא תקין');
+      return;
+    }
+    if (splitAmount >= total) {
+      alert(
+        `הסכום לפיצול (${splitAmount}) חייב להיות קטן מסה"כ השורה (${total}). ` +
+          `אם רצית להזיז את כל הסכום, ערוך את התאריך בשורה הנוכחית.`
+      );
+      return;
+    }
+    const remaining = total - splitAmount;
+
+    // 1. Reduce original row to the remainder; date stays the same
+    await updateTransactionApi(src.rowNumber, {
+      income: isIncome ? remaining : null,
+      expense: isIncome ? null : remaining,
+    });
+
+    // 2. Create new future row on the chosen date with the split amount.
+    // No frequency carry-over — the split is a one-off reschedule.
+    await createTransaction({
+      date: newDate,
+      category: src.category,
+      description: src.description,
+      income: isIncome ? splitAmount : null,
+      expense: isIncome ? null : splitAmount,
+      frequency: '',
+      status: 'future',
+      imageUrl: null,
+    });
+
+    // Note: not added to undo stack (multi-step; reversible by editing both rows).
+    showToast(
+      `פוצל: ${remaining.toLocaleString('he-IL')}₪ ב-${formatDateHe(src.date)} + ` +
+        `${splitAmount.toLocaleString('he-IL')}₪ ב-${formatDateHe(newDate)}`
+    );
+    setModalOpen(false);
+    setEditing(null);
+    await reload(true);
+  };
+
   const handleToggleDone = async (t: Transaction) => {
     if (t.status === 'past') return; // already done
     try {
@@ -919,6 +1004,9 @@ export default function HomePage() {
             onDuplicate={editing ? handleDuplicate : undefined}
             onPartialPayment={
               editing && editing.status !== 'past' ? handlePartialPayment : undefined
+            }
+            onSplitToFutureDate={
+              editing && editing.status !== 'past' ? handleSplitToFutureDate : undefined
             }
           />
           <CategoryManager
