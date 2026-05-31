@@ -936,24 +936,24 @@ export default function HomePage() {
       {/* Left-middle floating quick-nav cluster: small pills stacked
           vertically, centered on the viewport vertical midline against the
           left edge. Compact enough to coexist with content on mobile. */}
-      <div className="fixed top-1/2 left-2 -translate-y-1/2 z-40 flex flex-col gap-1 items-stretch">
+      <div className="fixed top-1/2 left-2 -translate-y-1/2 z-40 flex flex-col gap-4 items-stretch">
         <button
           onClick={handleAddPast}
-          className="bg-[#2D3A8C]/90 text-white px-2 py-1 rounded-full shadow text-[11px] font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
+          className="bg-[#2D3A8C]/90 text-white px-3 py-2.5 rounded-full shadow text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הוסף תנועה לעבר"
         >
           + עבר
         </button>
         <button
           onClick={scrollDividerToCenter}
-          className="bg-[#2D3A8C]/90 text-white px-2 py-1 rounded-full shadow text-[11px] font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
+          className="bg-[#2D3A8C]/90 text-white px-3 py-2.5 rounded-full shadow text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הצג את קו 'היום' במרכז המסך — חזור למצב ברירת המחדל"
         >
           ↕ אמצע
         </button>
         <button
           onClick={handleAddFuture}
-          className="bg-[#2D3A8C]/90 text-white px-2 py-1 rounded-full shadow text-[11px] font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
+          className="bg-[#2D3A8C]/90 text-white px-3 py-2.5 rounded-full shadow text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הוסף תנועה לתזרים"
         >
           + עתיד
