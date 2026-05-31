@@ -941,7 +941,7 @@ export default function HomePage() {
             occupies a thin vertical strip rather than a chunky block.
           - On desktop: nudged a bit inward (left-6) so it hugs the table
             rather than the screen edge. */}
-      <div className="fixed top-1/2 left-2 sm:left-6 -translate-y-1/2 z-40 flex flex-col gap-4 items-stretch">
+      <div className="fixed top-1/2 left-2 sm:left-20 -translate-y-1/2 z-40 flex flex-col gap-4 items-stretch">
         <button
           onClick={handleAddPast}
           className="bg-[#F0A500]/95 text-white px-1.5 py-4 sm:px-3 sm:py-2.5 rounded-full shadow text-[11px] sm:text-xs font-medium hover:bg-[#d49300] whitespace-nowrap"
