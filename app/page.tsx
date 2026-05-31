@@ -933,33 +933,30 @@ export default function HomePage() {
         />
       )}
 
-      {/* Top-center floating cluster: quick-add past + center divider + quick-add
-          future. Sits below the sticky header so it's reachable on every screen
-          and consolidates the three navigation-actions that used to live in
-          three different places (past header, today divider, bottom-left).
-          The header collapses to ~50px on desktop but stacks to ~200px on
-          mobile (balance badges wrap), so the top offset is responsive. */}
-      <div className="fixed top-[218px] sm:top-[80px] left-1/2 -translate-x-1/2 z-40 flex flex-col gap-1.5 items-stretch min-w-[120px]">
+      {/* Left-middle floating quick-nav cluster: small pills stacked
+          vertically, centered on the viewport vertical midline against the
+          left edge. Compact enough to coexist with content on mobile. */}
+      <div className="fixed top-1/2 left-2 -translate-y-1/2 z-40 flex flex-col gap-1 items-stretch">
         <button
           onClick={handleAddPast}
-          className="bg-[#2D3A8C] text-white px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm font-medium"
+          className="bg-[#2D3A8C]/90 text-white px-2 py-1 rounded-full shadow text-[11px] font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הוסף תנועה לעבר"
         >
-          + לעבר
+          + עבר
         </button>
         <button
           onClick={scrollDividerToCenter}
-          className="bg-[#2D3A8C] text-white px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm font-medium"
+          className="bg-[#2D3A8C]/90 text-white px-2 py-1 rounded-full shadow text-[11px] font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הצג את קו 'היום' במרכז המסך — חזור למצב ברירת המחדל"
         >
           ↕ אמצע
         </button>
         <button
           onClick={handleAddFuture}
-          className="bg-[#2D3A8C] text-white px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm font-medium"
+          className="bg-[#2D3A8C]/90 text-white px-2 py-1 rounded-full shadow text-[11px] font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הוסף תנועה לתזרים"
         >
-          + לעתיד
+          + עתיד
         </button>
       </div>
 
