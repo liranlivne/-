@@ -24,8 +24,6 @@ interface Props {
   selectedRows: Set<number>;
   onSetSelect: (rowNumber: number, selected: boolean) => void;
   onOpenCategories: () => void;
-  onAddFuture: () => void;
-  onAddPast: () => void;
 }
 
 export function TransactionsTable({
@@ -37,32 +35,20 @@ export function TransactionsTable({
   selectedRows,
   onSetSelect,
   onOpenCategories,
-  onAddFuture,
-  onAddPast,
 }: Props) {
   const formattedToday = formatDateHe(todayIso());
 
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3 lg:mr-0 lg:pr-[304px]">
-      {/* Past section header — no longer collapsible; past is always visible
-          and shares the page scroll with future. The "↕ אמצע" floating button
-          (in page.tsx) snaps the today-divider back to viewport center. */}
-      <div className="mb-2 flex items-stretch gap-2">
-        <div className="flex-1 text-right bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            עבר
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            {pastTransactions.length} רשומות
-          </span>
-        </div>
-        <button
-          onClick={onAddPast}
-          className="shrink-0 px-3 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] font-bold text-lg"
-          title="הוסף תנועה לעבר"
-        >
-          +
-        </button>
+      {/* Past section header — caption only. Add/center/add-future actions
+          live in the top-center floating cluster (in page.tsx). */}
+      <div className="mb-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 flex items-center justify-between">
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          עבר
+        </span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          {pastTransactions.length} רשומות
+        </span>
       </div>
 
       {/* Past rows — always visible, opacity reduced to keep visual hierarchy
@@ -83,21 +69,14 @@ export function TransactionsTable({
         </div>
       )}
 
-      {/* Today divider + add-future button. The id is the scroll target for
-          both the initial center-on-load and the "↕ אמצע" button. */}
+      {/* Today divider. The id is the scroll target for both initial
+          center-on-load and the "↕ אמצע" floating button (in page.tsx). */}
       <div id={TODAY_DIVIDER_ID} className="my-4 flex items-center gap-3 scroll-mt-20">
         <div className="flex-1 h-0.5 bg-[#2D3A8C]" />
         <div className="bg-[#2D3A8C] text-white px-4 py-1 rounded-full text-sm font-medium">
           היום — {formattedToday}
         </div>
         <div className="flex-1 h-0.5 bg-[#2D3A8C]" />
-        <button
-          onClick={onAddFuture}
-          className="shrink-0 w-9 h-9 bg-[#2D3A8C] text-white rounded-full hover:bg-[#1f2a6b] font-bold text-xl flex items-center justify-center shadow"
-          title="הוסף תנועה לתזרים"
-        >
-          +
-        </button>
       </div>
 
       {/* Future rows */}

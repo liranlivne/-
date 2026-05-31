@@ -137,6 +137,18 @@ export default function HomePage() {
   // silently no-ops in some Next.js conditions on initial load (likely
   // racing with the framework's scroll-restoration), even when called from
   // a click handler. The explicit math is bulletproof.
+  const handleAddFuture = useCallback(() => {
+    setEditing(null);
+    setCreateAsPast(false);
+    setModalOpen(true);
+  }, []);
+
+  const handleAddPast = useCallback(() => {
+    setEditing(null);
+    setCreateAsPast(true);
+    setModalOpen(true);
+  }, []);
+
   const scrollDividerToCenter = useCallback(() => {
     const el = document.getElementById(TODAY_DIVIDER_ID);
     if (!el) return;
@@ -918,50 +930,65 @@ export default function HomePage() {
             });
           }}
           onOpenCategories={() => setCatsOpen(true)}
-          onAddFuture={() => {
-            setEditing(null);
-            setCreateAsPast(false);
-            setModalOpen(true);
-          }}
-          onAddPast={() => {
-            setEditing(null);
-            setCreateAsPast(true);
-            setModalOpen(true);
-          }}
         />
       )}
 
-      {/* Floating bottom-left cluster: re-center button (always) + undo/redo
-          (conditional). They share one row so they don't stack vertically. */}
-      <div className="fixed bottom-4 left-4 z-40 flex gap-2 items-end flex-wrap">
+      {/* Top-center floating cluster: quick-add past + center divider + quick-add
+          future. Sits below the sticky header so it's reachable on every screen
+          and consolidates the three navigation-actions that used to live in
+          three different places (past header, today divider, bottom-left).
+          The header collapses to ~50px on desktop but stacks to ~200px on
+          mobile (balance badges wrap), so the top offset is responsive. */}
+      <div className="fixed top-[218px] sm:top-[80px] left-1/2 -translate-x-1/2 z-40 flex flex-col gap-1.5 items-stretch min-w-[120px]">
+        <button
+          onClick={handleAddPast}
+          className="bg-[#2D3A8C] text-white px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm font-medium"
+          title="הוסף תנועה לעבר"
+        >
+          + לעבר
+        </button>
         <button
           onClick={scrollDividerToCenter}
-          className="bg-[#2D3A8C] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm flex items-center gap-1"
+          className="bg-[#2D3A8C] text-white px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm font-medium"
           title="הצג את קו 'היום' במרכז המסך — חזור למצב ברירת המחדל"
         >
           ↕ אמצע
         </button>
-        {canUndo() && (
-          <button
-            onClick={doUndo}
-            className="bg-slate-800 text-white px-3 py-2 rounded-full shadow-lg hover:bg-slate-900 text-sm flex items-center gap-2"
-            title="Ctrl+Z"
-          >
-            ↶ בטל: {peekUndoLabel()}
-            <span className="text-xs opacity-60">Ctrl+Z</span>
-          </button>
-        )}
-        {canRedo() && (
-          <button
-            onClick={doRedo}
-            className="bg-[#F0A500] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#d49300] text-sm flex items-center gap-2"
-            title="Ctrl+Y"
-          >
-            ↷ בצע מחדש: {peekRedoLabel()}
-            <span className="text-xs opacity-60">Ctrl+Y</span>
-          </button>
-        )}
+        <button
+          onClick={handleAddFuture}
+          className="bg-[#2D3A8C] text-white px-3 py-1.5 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm font-medium"
+          title="הוסף תנועה לתזרים"
+        >
+          + לעתיד
+        </button>
       </div>
+
+      {/* Bottom-left floating cluster: undo / redo only.
+          The "↕ אמצע" button moved to the top-center cluster above. */}
+      {(canUndo() || canRedo()) && (
+        <div className="fixed bottom-4 left-4 z-40 flex gap-2 items-end flex-wrap">
+          {canUndo() && (
+            <button
+              onClick={doUndo}
+              className="bg-slate-800 text-white px-3 py-2 rounded-full shadow-lg hover:bg-slate-900 text-sm flex items-center gap-2"
+              title="Ctrl+Z"
+            >
+              ↶ בטל: {peekUndoLabel()}
+              <span className="text-xs opacity-60">Ctrl+Z</span>
+            </button>
+          )}
+          {canRedo() && (
+            <button
+              onClick={doRedo}
+              className="bg-[#F0A500] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#d49300] text-sm flex items-center gap-2"
+              title="Ctrl+Y"
+            >
+              ↷ בצע מחדש: {peekRedoLabel()}
+              <span className="text-xs opacity-60">Ctrl+Y</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
