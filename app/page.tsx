@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SheetSnapshot, Transaction } from '@/lib/types';
 import { Header } from '@/components/Header';
 import { FiltersPanel, emptyFilters, applyFilters, type FiltersState } from '@/components/FiltersPanel';
-import { TransactionsTable } from '@/components/TransactionsTable';
+import { TransactionsTable, TODAY_DIVIDER_ID } from '@/components/TransactionsTable';
 import { TransactionModal } from '@/components/TransactionModal';
 import { CategoryManager } from '@/components/CategoryManager';
 import { ExportButton } from '@/components/ExportButton';
@@ -128,6 +128,48 @@ export default function HomePage() {
   useEffect(() => {
     return subscribeHistory(() => setUndoVersion((v) => v + 1));
   }, []);
+
+  // Default-position view: the "היום" divider sits at vertical center of the
+  // viewport, so past is above and future is below in equal halves.
+  //
+  // Implementation note: we use window.scrollTo with an explicit computed
+  // target instead of element.scrollIntoView({block:'center'}). The latter
+  // silently no-ops in some Next.js conditions on initial load (likely
+  // racing with the framework's scroll-restoration), even when called from
+  // a click handler. The explicit math is bulletproof.
+  const scrollDividerToCenter = useCallback(() => {
+    const el = document.getElementById(TODAY_DIVIDER_ID);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const target = r.top + window.scrollY - (window.innerHeight - r.height) / 2;
+    // Always instant — smooth scroll silently no-ops in some browser
+    // configurations (prefers-reduced-motion, embedded WebViews) and the
+    // jarring snap is preferable to "nothing happened" on the button click.
+    window.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+  }, []);
+
+  // Fires once on first snapshot arrival. Retries for ~1s because past can
+  // be hundreds of rows — first paint may run before the row reflow has
+  // settled or before Next.js's own scroll restoration has reset to (0,0).
+  const hasCenteredOnLoadRef = useRef(false);
+  useEffect(() => {
+    if (!snapshot || hasCenteredOnLoadRef.current) return;
+    hasCenteredOnLoadRef.current = true;
+    let tries = 0;
+    const tick = () => {
+      const el = document.getElementById(TODAY_DIVIDER_ID);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const target = r.top + window.scrollY - (window.innerHeight - r.height) / 2;
+        const isCentered = Math.abs(window.scrollY - target) < 50;
+        if (isCentered) return;
+        window.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+      }
+      if (++tries < 10) setTimeout(tick, 150);
+    };
+    // First attempt deferred 200ms to let Next.js's scroll-restoration finish.
+    setTimeout(tick, 200);
+  }, [snapshot]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -889,31 +931,37 @@ export default function HomePage() {
         />
       )}
 
-      {/* Undo / Redo indicators */}
-      {(canUndo() || canRedo()) && (
-        <div className="fixed bottom-4 left-4 z-40 flex gap-2">
-          {canUndo() && (
-            <button
-              onClick={doUndo}
-              className="bg-slate-800 text-white px-3 py-2 rounded-full shadow-lg hover:bg-slate-900 text-sm flex items-center gap-2"
-              title="Ctrl+Z"
-            >
-              ↶ בטל: {peekUndoLabel()}
-              <span className="text-xs opacity-60">Ctrl+Z</span>
-            </button>
-          )}
-          {canRedo() && (
-            <button
-              onClick={doRedo}
-              className="bg-[#F0A500] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#d49300] text-sm flex items-center gap-2"
-              title="Ctrl+Y"
-            >
-              ↷ בצע מחדש: {peekRedoLabel()}
-              <span className="text-xs opacity-60">Ctrl+Y</span>
-            </button>
-          )}
-        </div>
-      )}
+      {/* Floating bottom-left cluster: re-center button (always) + undo/redo
+          (conditional). They share one row so they don't stack vertically. */}
+      <div className="fixed bottom-4 left-4 z-40 flex gap-2 items-end flex-wrap">
+        <button
+          onClick={scrollDividerToCenter}
+          className="bg-[#2D3A8C] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#1f2a6b] text-sm flex items-center gap-1"
+          title="הצג את קו 'היום' במרכז המסך — חזור למצב ברירת המחדל"
+        >
+          ↕ אמצע
+        </button>
+        {canUndo() && (
+          <button
+            onClick={doUndo}
+            className="bg-slate-800 text-white px-3 py-2 rounded-full shadow-lg hover:bg-slate-900 text-sm flex items-center gap-2"
+            title="Ctrl+Z"
+          >
+            ↶ בטל: {peekUndoLabel()}
+            <span className="text-xs opacity-60">Ctrl+Z</span>
+          </button>
+        )}
+        {canRedo() && (
+          <button
+            onClick={doRedo}
+            className="bg-[#F0A500] text-white px-3 py-2 rounded-full shadow-lg hover:bg-[#d49300] text-sm flex items-center gap-2"
+            title="Ctrl+Y"
+          >
+            ↷ בצע מחדש: {peekRedoLabel()}
+            <span className="text-xs opacity-60">Ctrl+Y</span>
+          </button>
+        )}
+      </div>
 
       {/* Toast */}
       {toast && (

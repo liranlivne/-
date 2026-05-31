@@ -1,11 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { Transaction } from '@/lib/types';
 import { formatDateHe, isToday, todayIso } from '@/lib/dateUtils';
 import { formatShekel, getBalanceColor } from '@/lib/balance';
 import { isRecentlyUpdated } from '@/lib/highlight';
 import { ImageLightbox } from './ImageUploader';
+
+/**
+ * DOM id of the "היום — DATE" divider band between past and future.
+ * page.tsx uses this both for initial center-on-load and for the "↕ אמצע"
+ * floating button — keeping a stable id rather than threading a ref through
+ * the prop chain.
+ */
+export const TODAY_DIVIDER_ID = 'today-divider';
 
 interface Props {
   pastTransactions: Transaction[];
@@ -32,38 +40,22 @@ export function TransactionsTable({
   onAddFuture,
   onAddPast,
 }: Props) {
-  const [showPast, setShowPast] = useState(false);
-  const pastScrollRef = useRef<HTMLDivElement>(null);
-
   const formattedToday = formatDateHe(todayIso());
-
-  // When the past section opens, scroll it to the bottom so the newest past rows
-  // (closest to "today") are visible immediately. The user can scroll up to see older.
-  useEffect(() => {
-    if (!showPast) return;
-    const el = pastScrollRef.current;
-    if (!el) return;
-    // Wait a tick for layout to settle
-    requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-    });
-  }, [showPast, pastTransactions.length]);
 
   return (
     <div className="max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3 lg:mr-0 lg:pr-[304px]">
-      {/* Past section header */}
+      {/* Past section header — no longer collapsible; past is always visible
+          and shares the page scroll with future. The "↕ אמצע" floating button
+          (in page.tsx) snaps the today-divider back to viewport center. */}
       <div className="mb-2 flex items-stretch gap-2">
-        <button
-          onClick={() => setShowPast((s) => !s)}
-          className="flex-1 text-right bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-between"
-        >
-          <span className="text-sm font-medium">
-            {showPast ? '▲ הסתר עבר' : '▼ הצג עבר'}
+        <div className="flex-1 text-right bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            עבר
           </span>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            {pastTransactions.length} רשומות בעבר
+            {pastTransactions.length} רשומות
           </span>
-        </button>
+        </div>
         <button
           onClick={onAddPast}
           className="shrink-0 px-3 bg-[#2D3A8C] text-white rounded hover:bg-[#1f2a6b] font-bold text-lg"
@@ -73,12 +65,11 @@ export function TransactionsTable({
         </button>
       </div>
 
-      {/* Past rows (scrollable container, opacity reduced, starts scrolled to bottom) */}
-      {showPast && pastTransactions.length > 0 && (
-        <div
-          ref={pastScrollRef}
-          className="opacity-80 mb-2 max-h-[50vh] overflow-y-auto border dark:border-slate-700 rounded"
-        >
+      {/* Past rows — always visible, opacity reduced to keep visual hierarchy
+          (future is the primary surface). No internal scroll: rows flow into
+          the page scroll so the divider can be centered against the viewport. */}
+      {pastTransactions.length > 0 && (
+        <div className="opacity-80 mb-2 border dark:border-slate-700 rounded">
           <TableView
             rows={pastTransactions}
             runningBalances={runningBalances}
@@ -92,8 +83,9 @@ export function TransactionsTable({
         </div>
       )}
 
-      {/* Today divider + add-future button */}
-      <div className="my-4 flex items-center gap-3">
+      {/* Today divider + add-future button. The id is the scroll target for
+          both the initial center-on-load and the "↕ אמצע" button. */}
+      <div id={TODAY_DIVIDER_ID} className="my-4 flex items-center gap-3 scroll-mt-20">
         <div className="flex-1 h-0.5 bg-[#2D3A8C]" />
         <div className="bg-[#2D3A8C] text-white px-4 py-1 rounded-full text-sm font-medium">
           היום — {formattedToday}
