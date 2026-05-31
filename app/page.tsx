@@ -933,27 +933,32 @@ export default function HomePage() {
         />
       )}
 
-      {/* Left-middle floating quick-nav cluster: small pills stacked
-          vertically, centered on the viewport vertical midline against the
-          left edge. Compact enough to coexist with content on mobile. */}
-      <div className="fixed top-1/2 left-2 -translate-y-1/2 z-40 flex flex-col gap-4 items-stretch">
+      {/* Left-middle floating quick-nav cluster.
+          - עבר / עתיד = yellow (matches the import-from-bank button); they
+            are the "add" actions that benefit from visual prominence.
+          - אמצע = blue, secondary navigation action.
+          - On mobile: narrower (px-1.5) + taller (py-4) so the cluster
+            occupies a thin vertical strip rather than a chunky block.
+          - On desktop: nudged a bit inward (left-6) so it hugs the table
+            rather than the screen edge. */}
+      <div className="fixed top-1/2 left-2 sm:left-6 -translate-y-1/2 z-40 flex flex-col gap-4 items-stretch">
         <button
           onClick={handleAddPast}
-          className="bg-[#2D3A8C]/90 text-white px-3 py-2.5 rounded-full shadow text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
+          className="bg-[#F0A500]/95 text-white px-1.5 py-4 sm:px-3 sm:py-2.5 rounded-full shadow text-[11px] sm:text-xs font-medium hover:bg-[#d49300] whitespace-nowrap"
           title="הוסף תנועה לעבר"
         >
           + עבר
         </button>
         <button
           onClick={scrollDividerToCenter}
-          className="bg-[#2D3A8C]/90 text-white px-3 py-2.5 rounded-full shadow text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
+          className="bg-[#2D3A8C]/95 text-white px-1.5 py-4 sm:px-3 sm:py-2.5 rounded-full shadow text-[11px] sm:text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
           title="הצג את קו 'היום' במרכז המסך — חזור למצב ברירת המחדל"
         >
           ↕ אמצע
         </button>
         <button
           onClick={handleAddFuture}
-          className="bg-[#2D3A8C]/90 text-white px-3 py-2.5 rounded-full shadow text-xs font-medium hover:bg-[#1f2a6b] whitespace-nowrap"
+          className="bg-[#F0A500]/95 text-white px-1.5 py-4 sm:px-3 sm:py-2.5 rounded-full shadow text-[11px] sm:text-xs font-medium hover:bg-[#d49300] whitespace-nowrap"
           title="הוסף תנועה לתזרים"
         >
           + עתיד
