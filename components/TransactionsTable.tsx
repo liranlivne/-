@@ -301,10 +301,10 @@ function DesktopGridRow({
           </button>
         )}
       </div>
-      {/* Notes: wrap onto multiple lines instead of truncating, with a
-          slightly smaller font so long notes stay readable without forcing
-          the column wider. whitespace-pre-wrap keeps any manual line breaks. */}
-      <div className="px-2 py-2 text-xs leading-snug text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">
+      {/* Notes: wrap onto multiple lines instead of truncating. Near-black
+          (slate-900 / slate-100 in dark) + medium weight for legibility at
+          the smaller size. whitespace-pre-wrap keeps any manual line breaks. */}
+      <div className="px-2 py-2 text-xs leading-snug font-medium text-slate-900 dark:text-slate-100 whitespace-pre-wrap break-words">
         {t.description}
       </div>
       <div className="px-2 py-2 num text-center text-[color:var(--color-income)] font-medium">
