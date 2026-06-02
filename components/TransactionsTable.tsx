@@ -39,7 +39,7 @@ export function TransactionsTable({
   const formattedToday = formatDateHe(todayIso());
 
   return (
-    <div className="max-w-7xl mx-auto px-0 sm:px-4 py-2 sm:py-3 lg:mr-0 lg:pr-[304px]">
+    <div className="max-w-[1500px] mx-auto px-0 sm:px-4 py-2 sm:py-3 lg:mr-0 lg:pr-[180px]">
       {/* Past section header — caption only. Add/center/add-future actions
           live in the top-center floating cluster (in page.tsx). */}
       <div className="mb-2 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded px-3 py-2 flex items-center justify-between">
@@ -177,9 +177,12 @@ function DesktopGrid({
 }) {
   // Grid template columns (visual order in RTL = logical order, since grid respects dir)
   // Order: select | date | category | description | income | expense | balance | frequency | done
+  // Numeric/meta columns trimmed vs. the original so the flexible תיאור
+  // column (minmax 200px,2fr) absorbs the extra width — see request to give
+  // notes more room.
   const cols = showBalanceCol
-    ? '54px 95px 140px minmax(120px,1fr) 120px 120px 130px 90px 60px'
-    : '54px 95px 140px minmax(120px,1fr) 120px 120px 90px 60px';
+    ? '48px 82px 130px minmax(200px,2fr) 104px 104px 116px 70px 52px'
+    : '48px 82px 130px minmax(200px,2fr) 104px 104px 70px 52px';
 
   return (
     <div>
@@ -263,7 +266,7 @@ function DesktopGridRow({
   return (
     <div
       onClick={() => onRowClick(t)}
-      className={`grid text-sm border-t dark:border-slate-700 cursor-pointer transition items-center ${
+      className={`grid text-sm border-t dark:border-slate-700 cursor-pointer transition items-start ${
         selected
           ? 'bg-blue-100 dark:bg-blue-900/50 ring-1 ring-[#2D3A8C] ring-inset'
           : highlighted
@@ -298,7 +301,12 @@ function DesktopGridRow({
           </button>
         )}
       </div>
-      <div className="px-2 py-2 text-slate-700 dark:text-slate-300 truncate">{t.description}</div>
+      {/* Notes: wrap onto multiple lines instead of truncating, with a
+          slightly smaller font so long notes stay readable without forcing
+          the column wider. whitespace-pre-wrap keeps any manual line breaks. */}
+      <div className="px-2 py-2 text-xs leading-snug text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words">
+        {t.description}
+      </div>
       <div className="px-2 py-2 num text-center text-[color:var(--color-income)] font-medium">
         {t.income ? formatShekel(t.income) : ''}
       </div>
