@@ -80,6 +80,9 @@ export default function HomePage() {
   const [bankImportOpen, setBankImportOpen] = useState(false);
   const [salaryImportOpen, setSalaryImportOpen] = useState(false);
   const [sendingToMorning, setSendingToMorning] = useState(false);
+  // Rows whose files were just handed to WhatsApp, awaiting the user's
+  // "yes I sent them" confirmation before flipping orange → green.
+  const [morningConfirm, setMorningConfirm] = useState<Transaction[] | null>(null);
   const [splittingRow, setSplittingRow] = useState<Transaction | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [catsOpen, setCatsOpen] = useState(false);
@@ -838,13 +841,14 @@ export default function HomePage() {
 
   /**
    * Send-to-Morning flow. Gathers every attached-but-not-sent invoice file,
-   * hands them to the OS share sheet (→ WhatsApp → the Morning contact), and
-   * only then — after confirming the operator is Liran and actually sent —
-   * marks those rows as sent (orange → green).
+   * then either shares them (mobile → WhatsApp) or downloads them + opens
+   * WhatsApp Web on the Morning chat (desktop — the main case here). It does
+   * NOT mark anything sent itself: a non-blocking confirmation banner
+   * (morningConfirm) appears so the user can finish the WhatsApp send at their
+   * own pace, then confirm — keeping the "marked-but-forgot" guard intact.
    *
    * WhatsApp can't be opened with both a recipient AND pre-attached files, so
-   * the recipient pick is the one manual step. Desktop (no file-share支持)
-   * falls back to downloading the files + opening the Morning chat.
+   * on desktop the drag-drop into the chat is the one manual step.
    */
   const handleSendToMorning = async () => {
     if (!snapshot) return;
@@ -872,7 +876,8 @@ export default function HomePage() {
         }
       }
 
-      // 2. Share to WhatsApp (mobile) or fall back (desktop).
+      // 2. Mobile: OS share sheet (files attached). Desktop: download the files
+      //    and open WhatsApp Web on the Morning chat for drag-drop.
       const nav = navigator as Navigator & {
         canShare?: (data?: ShareData) => boolean;
       };
@@ -891,7 +896,6 @@ export default function HomePage() {
           throw err;
         }
       } else {
-        // Desktop fallback: download the files, open the Morning chat.
         for (const f of files) {
           const a = document.createElement('a');
           a.href = URL.createObjectURL(f);
@@ -900,36 +904,35 @@ export default function HomePage() {
           a.click();
           a.remove();
         }
-        window.open('https://wa.me/972506560837', '_blank');
+        // web.whatsapp.com/send goes straight to the chat (vs wa.me's interstitial).
+        window.open('https://web.whatsapp.com/send?phone=972506560837', '_blank');
       }
 
-      // 3. Identity + actually-sent gate, then mark sent.
-      const ok = window.confirm(
-        `רק לירן יכול לשלוח למורנינג.\n\n` +
-          `אתה לירן, ושלחת את ${queue.length} החשבוניות בוואטסאפ?\n\n` +
-          `אישור יסמן אותן כ"נשלחו" (ירוק). ביטול ישאיר אותן כתומות.`
-      );
-      if (!ok) {
-        setSendingToMorning(false);
-        return;
-      }
-
-      let done = 0;
-      for (const t of queue) {
-        try {
-          await updateTransactionApi(t.rowNumber, { morningSent: true });
-          done++;
-        } catch (err) {
-          console.error('Failed to mark sent:', t.rowNumber, err);
-        }
-      }
-      showToast(`${done} חשבוניות סומנו כנשלחו למורנינג ✓`);
-      await reload(true);
+      // 3. Hand off to the non-blocking confirm banner (don't mark sent yet).
+      setMorningConfirm(queue);
     } catch (err) {
       alert('שגיאה בשליחה למורנינג: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSendingToMorning(false);
     }
+  };
+
+  /** Confirm-banner action: mark the queued rows as sent to Morning. */
+  const confirmMorningSent = async () => {
+    const queue = morningConfirm;
+    if (!queue) return;
+    setMorningConfirm(null);
+    let done = 0;
+    for (const t of queue) {
+      try {
+        await updateTransactionApi(t.rowNumber, { morningSent: true });
+        done++;
+      } catch (err) {
+        console.error('Failed to mark sent:', t.rowNumber, err);
+      }
+    }
+    showToast(`${done} חשבוניות סומנו כנשלחו למורנינג ✓`);
+    await reload(true);
   };
 
   const handleSaveCategories = async (list: string[]) => {
@@ -1156,6 +1159,49 @@ export default function HomePage() {
             onConfirm={executeSplit}
           />
         </>
+      )}
+
+      {/* Send-to-Morning confirmation banner. Non-blocking: it sits over the
+          page while the user finishes the WhatsApp send, then they confirm. */}
+      {morningConfirm && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setMorningConfirm(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-orange-500 text-white px-4 py-3 rounded-t-lg font-bold text-lg">
+              📤 שליחה למורנינג
+            </div>
+            <div className="p-5 space-y-3 text-sm">
+              <p>
+                הקבצים של <b>{morningConfirm.length}</b> חשבוניות הורדו / שותפו.
+                גרור אותם לצ׳אט של מורנינג בוואטסאפ ולחץ שלח.
+              </p>
+              <p className="text-slate-600 dark:text-slate-300">
+                <b>רק לירן</b> שולח למורנינג. אחרי שהשלמת את השליחה — לחץ
+                &quot;נשלחו&quot; כדי לסמן אותן ירוק. אם עדיין לא שלחת, סגור
+                והן יישארו כתומות.
+              </p>
+            </div>
+            <div className="border-t dark:border-slate-700 p-4 flex justify-between gap-2">
+              <button
+                onClick={() => setMorningConfirm(null)}
+                className="px-4 py-2 border dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700"
+              >
+                עדיין לא
+              </button>
+              <button
+                onClick={confirmMorningSent}
+                className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+              >
+                ✓ נשלחו — סמן ירוק ({morningConfirm.length})
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Bulk actions bar — appears when at least one row is selected */}
