@@ -26,6 +26,13 @@ export const INVOICE_EXEMPT_CATEGORIES: readonly string[] = [
   'מע"מ',
 ];
 
+/**
+ * Invoice tracking starts here (ISO YYYY-MM-DD). Expenses dated before this
+ * are back-catalog the owner isn't chasing — they never turn red. Owner set
+ * 2026-06-01.
+ */
+export const INVOICE_TRACKING_START = '2026-06-01';
+
 export type InvoiceState =
   /** Not tracked — income row, or an exempt category. No indicator. */
   | 'none'
@@ -47,6 +54,8 @@ export function invoiceState(t: Transaction): InvoiceState {
   if (INVOICE_EXEMPT_CATEGORIES.includes(t.category)) return 'none';
   // A physically-attached file is the only thing that marks it done.
   if (t.imageUrl) return 'attached';
+  // Back-catalog (before tracking start) is never flagged.
+  if (t.date < INVOICE_TRACKING_START) return 'none';
   // No file: red once it's been paid, neutral while still upcoming.
   return t.status === 'past' ? 'missing' : 'neutral';
 }
