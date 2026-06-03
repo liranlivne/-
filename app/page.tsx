@@ -904,8 +904,14 @@ export default function HomePage() {
           a.click();
           a.remove();
         }
-        // web.whatsapp.com/send goes straight to the chat (vs wa.me's interstitial).
-        window.open('https://web.whatsapp.com/send?phone=972506560837', '_blank');
+        // Open the Morning chat in the installed WhatsApp (Business) desktop
+        // app via the whatsapp:// protocol — not web.whatsapp.com — since the
+        // owner sends from WhatsApp Business Desktop.
+        const wa = document.createElement('a');
+        wa.href = 'whatsapp://send?phone=972506560837';
+        document.body.appendChild(wa);
+        wa.click();
+        wa.remove();
       }
 
       // 3. Hand off to the non-blocking confirm banner (don't mark sent yet).
