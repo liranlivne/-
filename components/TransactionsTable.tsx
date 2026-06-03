@@ -24,27 +24,34 @@ function InvoiceBadge({ t, onPreview }: { t: Transaction; onPreview: () => void 
   const state = invoiceState(t);
   if (state === 'none') return null;
 
+  // Solid, saturated fills + a distinct glyph per state, so red / orange /
+  // green are unmistakable even at a glance (the old pale -100 tints were
+  // too close to tell apart). Color AND shape both encode the state.
   const style: Record<
     Exclude<ReturnType<typeof invoiceState>, 'none'>,
-    { cls: string; title: string; hasFile: boolean }
+    { cls: string; glyph: string; title: string; hasFile: boolean }
   > = {
     missing: {
-      cls: 'bg-red-100 dark:bg-red-900/50 ring-red-500',
+      cls: 'bg-red-600 text-white ring-1 ring-black/10',
+      glyph: '!',
       title: 'חסרה חשבונית — לחץ על השורה כדי לצרף',
       hasFile: false,
     },
     attachedNotSent: {
-      cls: 'bg-orange-100 dark:bg-orange-900/50 ring-orange-500',
+      cls: 'bg-amber-500 text-white ring-1 ring-black/10',
+      glyph: '🧾',
       title: 'יש חשבונית — טרם נשלחה למורנינג (לחץ להצגה)',
       hasFile: true,
     },
     sent: {
-      cls: 'bg-green-100 dark:bg-green-900/50 ring-green-500',
+      cls: 'bg-green-600 text-white ring-1 ring-black/10',
+      glyph: '✓',
       title: 'נשלחה למורנינג ✓ (לחץ להצגה)',
       hasFile: true,
     },
     neutral: {
-      cls: 'bg-slate-100 dark:bg-slate-700 ring-slate-300 dark:ring-slate-600 opacity-60',
+      cls: 'bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300 opacity-70',
+      glyph: '🧾',
       title: 'ניתן לצרף חשבונית (תשלום עתידי)',
       hasFile: false,
     },
@@ -62,11 +69,11 @@ function InvoiceBadge({ t, onPreview }: { t: Transaction; onPreview: () => void 
           : undefined
       }
       title={s.title}
-      className={`flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full ring-1 text-[11px] ${s.cls} ${
+      className={`flex-shrink-0 inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[11px] font-bold leading-none ${s.cls} ${
         s.hasFile ? 'cursor-pointer hover:scale-110 transition' : ''
       }`}
     >
-      🧾
+      {s.glyph}
     </span>
   );
 }
