@@ -48,7 +48,8 @@ function hasActiveFilter(f: FiltersState): boolean {
     f.amountMax ||
     f.text ||
     f.type !== 'all' ||
-    f.onlyRecent
+    f.onlyRecent ||
+    f.onlyMissingInvoice
   );
 }
 
@@ -63,6 +64,7 @@ function describeFilters(f: FiltersState): string {
   if (f.type === 'income') parts.push('רק הכנסות');
   if (f.type === 'expense') parts.push('רק הוצאות');
   if (f.onlyRecent) parts.push('רק עדכונים אחרונים');
+  if (f.onlyMissingInvoice) parts.push('רק חשבונית חסרה');
   return 'סינון: ' + parts.join(' | ');
 }
 

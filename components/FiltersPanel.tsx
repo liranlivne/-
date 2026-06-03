@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { isRecentlyUpdated } from '@/lib/highlight';
+import { isInvoiceMissing } from '@/lib/invoices';
+import type { Transaction } from '@/lib/types';
 
 export interface FiltersState {
   dateFrom: string;
@@ -13,6 +15,8 @@ export interface FiltersState {
   type: 'all' | 'income' | 'expense';
   /** When true, show only rows that are "recently updated" (yellow-highlighted). */
   onlyRecent: boolean;
+  /** When true, show only expenses still missing an invoice (the red ones). */
+  onlyMissingInvoice: boolean;
 }
 
 export const emptyFilters: FiltersState = {
@@ -24,6 +28,7 @@ export const emptyFilters: FiltersState = {
   text: '',
   type: 'all',
   onlyRecent: false,
+  onlyMissingInvoice: false,
 };
 
 interface Props {
@@ -45,7 +50,8 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot, onOpenC
     filters.amountMax ||
     filters.text ||
     filters.type !== 'all' ||
-    filters.onlyRecent;
+    filters.onlyRecent ||
+    filters.onlyMissingInvoice;
 
   const clear = () => onChange(emptyFilters);
 
@@ -169,6 +175,15 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot, onOpenC
               />
               <span className="text-sm">הצג רק שורות שעודכנו לאחרונה (צהובות)</span>
             </label>
+            <label className="flex items-center gap-2 md:col-span-2 bg-red-50 dark:bg-red-900/30 border border-red-400 rounded px-3 py-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filters.onlyMissingInvoice}
+                onChange={(e) => update({ onlyMissingInvoice: e.target.checked })}
+                className="w-4 h-4 accent-red-600"
+              />
+              <span className="text-sm">הצג רק הוצאות עם חשבונית חסרה 🧾</span>
+            </label>
           </div>
         )}
       </div>
@@ -177,17 +192,7 @@ export function FiltersPanel({ filters, onChange, categories, rightSlot, onOpenC
 }
 
 /** Apply filters to a list of transactions. */
-export function applyFilters<
-  T extends {
-    date: string;
-    category: string;
-    description: string;
-    income: number | null;
-    expense: number | null;
-    done: boolean;
-    updatedAt: string | null;
-  }
->(items: T[], f: FiltersState): T[] {
+export function applyFilters(items: Transaction[], f: FiltersState): Transaction[] {
   return items.filter((t) => {
     if (f.dateFrom && t.date < f.dateFrom) return false;
     if (f.dateTo && t.date > f.dateTo) return false;
@@ -202,6 +207,8 @@ export function applyFilters<
     if (f.type === 'expense' && !t.expense) return false;
 
     if (f.onlyRecent && !isRecentlyUpdated(t.updatedAt)) return false;
+
+    if (f.onlyMissingInvoice && !isInvoiceMissing(t)) return false;
 
     return true;
   });

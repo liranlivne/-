@@ -5,7 +5,40 @@ import type { Transaction } from '@/lib/types';
 import { formatDateHe, isToday, todayIso } from '@/lib/dateUtils';
 import { formatShekel, getBalanceColor } from '@/lib/balance';
 import { isRecentlyUpdated } from '@/lib/highlight';
+import { invoiceState } from '@/lib/invoices';
 import { ImageLightbox } from './ImageUploader';
+
+/**
+ * Small per-row supplier-invoice flag. Shown only for expense rows that are
+ * in scope and have no file yet: red when overdue (paid/past), neutral-gray
+ * while still upcoming. Rows with a file show the 📎 button instead; exempt
+ * categories and income rows show nothing. Clicking bubbles to the row →
+ * opens the edit modal where the file can be attached.
+ */
+function InvoiceBadge({ t }: { t: Transaction }) {
+  const state = invoiceState(t);
+  if (state === 'missing') {
+    return (
+      <span
+        title="חסרה חשבונית — לחץ על השורה כדי לצרף"
+        className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/50 ring-1 ring-red-500 text-[11px]"
+      >
+        🧾
+      </span>
+    );
+  }
+  if (state === 'neutral') {
+    return (
+      <span
+        title="ניתן לצרף חשבונית (תשלום עתידי)"
+        className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-slate-300 dark:ring-slate-600 text-[11px] opacity-60"
+      >
+        🧾
+      </span>
+    );
+  }
+  return null;
+}
 
 /**
  * DOM id of the "היום — DATE" divider band between past and future.
@@ -300,6 +333,7 @@ function DesktopGridRow({
             📎
           </button>
         )}
+        <InvoiceBadge t={t} />
       </div>
       {/* Notes: wrap onto multiple lines instead of truncating. Near-black
           (slate-900 / slate-100 in dark) + medium weight for legibility at
@@ -399,6 +433,7 @@ function MobileCard({
             📎
           </button>
         )}
+        <InvoiceBadge t={t} />
       </span>
       {t.expense ? (
         <span className="num text-[color:var(--color-expense)] font-bold text-xs flex-shrink-0">
