@@ -17,7 +17,7 @@ const TZRIM_SHEET = 'תזרים';
 const CATEGORIES_SHEET = 'קטגוריות';
 const CHAT_SHEET = 'צאט';
 
-// Columns A..K  →  indexes 0..10
+// Columns A..L  →  indexes 0..11
 const COL = {
   DATE: 0,
   CATEGORY: 1,
@@ -30,9 +30,10 @@ const COL = {
   UPDATED_AT: 8,
   STATUS: 9,
   IMAGE_URL: 10,
+  MORNING_SENT: 11,
 } as const;
 
-const TZRIM_RANGE = `${TZRIM_SHEET}!A1:K`;
+const TZRIM_RANGE = `${TZRIM_SHEET}!A1:L`;
 const CATEGORIES_RANGE = `${CATEGORIES_SHEET}!A1:A`;
 
 let cachedClient: sheets_v4.Sheets | null = null;
@@ -146,6 +147,7 @@ export async function readSnapshot(): Promise<SheetSnapshot> {
       updatedAt: (row[COL.UPDATED_AT] as string) || null,
       status: parseStatus(row[COL.STATUS]),
       imageUrl: String(row[COL.IMAGE_URL] ?? '').trim() || null,
+      morningSent: parseBool(row[COL.MORNING_SENT]),
     });
   }
 
@@ -172,6 +174,7 @@ function transactionToRow(t: {
   updatedAt: string | null;
   status: TransactionStatus;
   imageUrl?: string | null;
+  morningSent?: boolean;
 }): (string | number | boolean)[] {
   return [
     isoToSheetDate(t.date),
@@ -185,6 +188,7 @@ function transactionToRow(t: {
     t.updatedAt ?? '',
     statusToSheet(t.status),
     t.imageUrl ?? '',
+    t.morningSent ?? false,
   ];
 }
 
@@ -197,7 +201,7 @@ export async function appendTransaction(
 
   const resp = await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${TZRIM_SHEET}!A:K`,
+    range: `${TZRIM_SHEET}!A:L`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values },
@@ -217,7 +221,7 @@ export async function updateTransaction(
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${TZRIM_SHEET}!A${rowNumber}:K${rowNumber}`,
+    range: `${TZRIM_SHEET}!A${rowNumber}:L${rowNumber}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [transactionToRow(t)] },
   });
@@ -228,7 +232,7 @@ export async function clearRow(rowNumber: number): Promise<void> {
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.clear({
     spreadsheetId: SPREADSHEET_ID,
-    range: `${TZRIM_SHEET}!A${rowNumber}:K${rowNumber}`,
+    range: `${TZRIM_SHEET}!A${rowNumber}:L${rowNumber}`,
   });
 }
 

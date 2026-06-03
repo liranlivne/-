@@ -9,35 +9,66 @@ import { invoiceState } from '@/lib/invoices';
 import { ImageLightbox } from './ImageUploader';
 
 /**
- * Small per-row supplier-invoice flag. Shown only for expense rows that are
- * in scope and have no file yet: red when overdue (paid/past), neutral-gray
- * while still upcoming. Rows with a file show the 📎 button instead; exempt
- * categories and income rows show nothing. Clicking bubbles to the row →
- * opens the edit modal where the file can be attached.
+ * Per-row supplier-invoice flag, 4 stages:
+ *   🔴 missing          — paid expense, no file (get the invoice)
+ *   🟠 attachedNotSent  — file in hand, not yet sent to Morning
+ *   🟢 sent             — file sent to Morning (done)
+ *   ⚪ neutral          — future expense, no file (hint only)
+ * Exempt categories, income rows and back-catalog show nothing.
+ *
+ * When a file exists (orange/green) the badge is clickable to preview it.
+ * For missing/neutral there's no file, so clicking bubbles to the row →
+ * opens the edit modal to attach.
  */
-function InvoiceBadge({ t }: { t: Transaction }) {
+function InvoiceBadge({ t, onPreview }: { t: Transaction; onPreview: () => void }) {
   const state = invoiceState(t);
-  if (state === 'missing') {
-    return (
-      <span
-        title="חסרה חשבונית — לחץ על השורה כדי לצרף"
-        className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-900/50 ring-1 ring-red-500 text-[11px]"
-      >
-        🧾
-      </span>
-    );
-  }
-  if (state === 'neutral') {
-    return (
-      <span
-        title="ניתן לצרף חשבונית (תשלום עתידי)"
-        className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700 ring-1 ring-slate-300 dark:ring-slate-600 text-[11px] opacity-60"
-      >
-        🧾
-      </span>
-    );
-  }
-  return null;
+  if (state === 'none') return null;
+
+  const style: Record<
+    Exclude<ReturnType<typeof invoiceState>, 'none'>,
+    { cls: string; title: string; hasFile: boolean }
+  > = {
+    missing: {
+      cls: 'bg-red-100 dark:bg-red-900/50 ring-red-500',
+      title: 'חסרה חשבונית — לחץ על השורה כדי לצרף',
+      hasFile: false,
+    },
+    attachedNotSent: {
+      cls: 'bg-orange-100 dark:bg-orange-900/50 ring-orange-500',
+      title: 'יש חשבונית — טרם נשלחה למורנינג (לחץ להצגה)',
+      hasFile: true,
+    },
+    sent: {
+      cls: 'bg-green-100 dark:bg-green-900/50 ring-green-500',
+      title: 'נשלחה למורנינג ✓ (לחץ להצגה)',
+      hasFile: true,
+    },
+    neutral: {
+      cls: 'bg-slate-100 dark:bg-slate-700 ring-slate-300 dark:ring-slate-600 opacity-60',
+      title: 'ניתן לצרף חשבונית (תשלום עתידי)',
+      hasFile: false,
+    },
+  };
+  const s = style[state];
+
+  return (
+    <span
+      onClick={
+        s.hasFile
+          ? (e) => {
+              e.stopPropagation();
+              onPreview();
+            }
+          : undefined
+      }
+      title={s.title}
+      className={`flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full ring-1 text-[11px] ${s.cls} ${
+        s.hasFile ? 'cursor-pointer hover:scale-110 transition' : ''
+      }`}
+    >
+      🧾
+    </span>
+  );
 }
 
 /**
@@ -321,7 +352,7 @@ function DesktopGridRow({
       <div className="px-2 py-2 whitespace-nowrap num text-center">{formatDateHe(t.date)}</div>
       <div className="px-2 py-2 truncate flex items-center gap-1.5">
         <span className="truncate">{t.category}</span>
-        {t.imageUrl && (
+        {invoiceState(t) === 'none' && t.imageUrl && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -333,7 +364,7 @@ function DesktopGridRow({
             📎
           </button>
         )}
-        <InvoiceBadge t={t} />
+        <InvoiceBadge t={t} onPreview={() => setPreviewOpen(true)} />
       </div>
       {/* Notes: wrap onto multiple lines instead of truncating. Near-black
           (slate-900 / slate-100 in dark) + medium weight for legibility at
@@ -421,7 +452,7 @@ function MobileCard({
       <span className="num text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0 w-[52px] text-center">{formatDateHe(t.date)}</span>
       <span className="text-xs font-medium truncate min-w-0 flex-1 flex items-center gap-0.5">
         {t.category}
-        {t.imageUrl && (
+        {invoiceState(t) === 'none' && t.imageUrl && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -433,7 +464,7 @@ function MobileCard({
             📎
           </button>
         )}
-        <InvoiceBadge t={t} />
+        <InvoiceBadge t={t} onPreview={() => setPreviewOpen(true)} />
       </span>
       {t.expense ? (
         <span className="num text-[color:var(--color-expense)] font-bold text-xs flex-shrink-0">

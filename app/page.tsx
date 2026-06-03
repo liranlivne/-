@@ -26,6 +26,7 @@ import {
 import { computeRunningBalances } from '@/lib/balance';
 import { todayIso, addMonthsIso, formatDateHe } from '@/lib/dateUtils';
 import { statusAfterDateChange } from '@/lib/transactionStatus';
+import { isAwaitingMorning } from '@/lib/invoices';
 import {
   pushUndo,
   performUndo,
@@ -78,6 +79,7 @@ export default function HomePage() {
   const [createAsPast, setCreateAsPast] = useState(false);
   const [bankImportOpen, setBankImportOpen] = useState(false);
   const [salaryImportOpen, setSalaryImportOpen] = useState(false);
+  const [sendingToMorning, setSendingToMorning] = useState(false);
   const [splittingRow, setSplittingRow] = useState<Transaction | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [catsOpen, setCatsOpen] = useState(false);
@@ -387,6 +389,12 @@ export default function HomePage() {
     for (const t of relevant) running += (t.income ?? 0) - (t.expense ?? 0);
     return running;
   }, [snapshot]);
+
+  // Invoices attached but not yet sent to Morning (the orange ones).
+  const morningQueue = useMemo(
+    () => (snapshot ? snapshot.transactions.filter(isAwaitingMorning) : []),
+    [snapshot]
+  );
 
   // ---------- Mutations ----------
 
@@ -828,6 +836,102 @@ export default function HomePage() {
     return { successCount, failedCount };
   };
 
+  /**
+   * Send-to-Morning flow. Gathers every attached-but-not-sent invoice file,
+   * hands them to the OS share sheet (→ WhatsApp → the Morning contact), and
+   * only then — after confirming the operator is Liran and actually sent —
+   * marks those rows as sent (orange → green).
+   *
+   * WhatsApp can't be opened with both a recipient AND pre-attached files, so
+   * the recipient pick is the one manual step. Desktop (no file-share支持)
+   * falls back to downloading the files + opening the Morning chat.
+   */
+  const handleSendToMorning = async () => {
+    if (!snapshot) return;
+    const queue = snapshot.transactions.filter(isAwaitingMorning);
+    if (queue.length === 0) {
+      showToast('אין חשבוניות חדשות לשליחה למורנינג');
+      return;
+    }
+    setSendingToMorning(true);
+    try {
+      // 1. Pull each invoice file through our same-origin proxy → File objects.
+      const files: File[] = [];
+      for (const t of queue) {
+        if (!t.imageUrl) continue;
+        try {
+          const res = await fetch(`/api/file-proxy?url=${encodeURIComponent(t.imageUrl)}`);
+          if (!res.ok) continue;
+          const blob = await res.blob();
+          const isPdf = t.imageUrl.toLowerCase().endsWith('.pdf');
+          const ext = isPdf ? 'pdf' : (blob.type.split('/')[1] || 'jpg');
+          const base = `${t.category}-${formatDateHe(t.date)}`.replace(/[\\/:*?"<>|]+/g, '_');
+          files.push(new File([blob], `${base}.${ext}`, { type: blob.type }));
+        } catch {
+          /* skip a file we couldn't fetch; it'll just stay orange */
+        }
+      }
+
+      // 2. Share to WhatsApp (mobile) or fall back (desktop).
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean;
+      };
+      const canShareFiles =
+        typeof nav.canShare === 'function' && files.length > 0 && nav.canShare({ files });
+
+      if (canShareFiles) {
+        try {
+          await nav.share({ files, title: 'חשבוניות למורנינג' });
+        } catch (err) {
+          // User dismissed the share sheet → they didn't send; abort quietly.
+          if ((err as Error)?.name === 'AbortError') {
+            setSendingToMorning(false);
+            return;
+          }
+          throw err;
+        }
+      } else {
+        // Desktop fallback: download the files, open the Morning chat.
+        for (const f of files) {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(f);
+          a.download = f.name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+        window.open('https://wa.me/972506560837', '_blank');
+      }
+
+      // 3. Identity + actually-sent gate, then mark sent.
+      const ok = window.confirm(
+        `רק לירן יכול לשלוח למורנינג.\n\n` +
+          `אתה לירן, ושלחת את ${queue.length} החשבוניות בוואטסאפ?\n\n` +
+          `אישור יסמן אותן כ"נשלחו" (ירוק). ביטול ישאיר אותן כתומות.`
+      );
+      if (!ok) {
+        setSendingToMorning(false);
+        return;
+      }
+
+      let done = 0;
+      for (const t of queue) {
+        try {
+          await updateTransactionApi(t.rowNumber, { morningSent: true });
+          done++;
+        } catch (err) {
+          console.error('Failed to mark sent:', t.rowNumber, err);
+        }
+      }
+      showToast(`${done} חשבוניות סומנו כנשלחו למורנינג ✓`);
+      await reload(true);
+    } catch (err) {
+      alert('שגיאה בשליחה למורנינג: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setSendingToMorning(false);
+    }
+  };
+
   const handleSaveCategories = async (list: string[]) => {
     if (!snapshot) return;
     const prev = snapshot.categories;
@@ -854,6 +958,9 @@ export default function HomePage() {
             onUpdateOpening={handleUpdateOpening}
             onBankImport={() => setBankImportOpen(true)}
             onSalaryImport={() => setSalaryImportOpen(true)}
+            morningPendingCount={morningQueue.length}
+            morningBusy={sendingToMorning}
+            onSendToMorning={handleSendToMorning}
           />
         )}
 

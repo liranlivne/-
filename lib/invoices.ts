@@ -34,33 +34,43 @@ export const INVOICE_EXEMPT_CATEGORIES: readonly string[] = [
 export const INVOICE_TRACKING_START = '2026-06-01';
 
 export type InvoiceState =
-  /** Not tracked — income row, or an exempt category. No indicator. */
+  /** Not tracked — income row, exempt category, or back-catalog. No indicator. */
   | 'none'
-  /** Expense with a file attached. Green. */
-  | 'attached'
-  /** Paid (past) expense, in scope, no file. Red — needs action. */
+  /** Paid (past) expense, in scope, no file. Red — get the invoice. */
   | 'missing'
+  /** File attached but not yet sent to Morning. Orange — send it. */
+  | 'attachedNotSent'
+  /** File attached AND sent to Morning. Green — fully done. */
+  | 'sent'
   /** Future (not-yet-paid) expense, in scope, no file. Neutral hint. */
   | 'neutral';
 
 /**
- * Decide the invoice state for a row. `status` is the past/future/opening
- * bucket; only 'past' expenses raise the red alarm.
+ * Decide the invoice state for a row. Pipeline (2026-06 spec):
+ *   income / exempt category / before tracking-start → none
+ *   in scope, no file:    past → missing (red),  future → neutral (gray)
+ *   in scope, file:        not sent → attachedNotSent (orange),  sent → sent (green)
+ *
+ * The tracking-start cutoff gates BOTH red and orange — historical attached
+ * files just keep their plain 📎 (state 'none'), they don't turn orange.
  */
 export function invoiceState(t: Transaction): InvoiceState {
-  // Only expense rows participate.
   if (!t.expense || t.expense <= 0) return 'none';
-  // Exempt categories never need an invoice.
   if (INVOICE_EXEMPT_CATEGORIES.includes(t.category)) return 'none';
-  // A physically-attached file is the only thing that marks it done.
-  if (t.imageUrl) return 'attached';
-  // Back-catalog (before tracking start) is never flagged.
   if (t.date < INVOICE_TRACKING_START) return 'none';
-  // No file: red once it's been paid, neutral while still upcoming.
-  return t.status === 'past' ? 'missing' : 'neutral';
+
+  if (!t.imageUrl) {
+    return t.status === 'past' ? 'missing' : 'neutral';
+  }
+  return t.morningSent ? 'sent' : 'attachedNotSent';
 }
 
-/** True for rows that still need an invoice action (the red ones). */
+/** Red rows — an invoice still needs to be obtained from the supplier. */
 export function isInvoiceMissing(t: Transaction): boolean {
   return invoiceState(t) === 'missing';
+}
+
+/** Orange rows — invoice in hand, not yet sent to Morning. */
+export function isAwaitingMorning(t: Transaction): boolean {
+  return invoiceState(t) === 'attachedNotSent';
 }

@@ -14,6 +14,11 @@ interface HeaderProps {
   onUpdateOpening: (value: number) => Promise<void>;
   onBankImport: () => void;
   onSalaryImport: () => void;
+  /** Number of invoices attached but not yet sent to Morning. */
+  morningPendingCount: number;
+  /** True while a send-to-Morning operation is in flight. */
+  morningBusy: boolean;
+  onSendToMorning: () => void;
 }
 
 function formatBalanceUpdated(iso: string): string {
@@ -39,6 +44,9 @@ export function Header({
   onUpdateOpening,
   onBankImport,
   onSalaryImport,
+  morningPendingCount,
+  morningBusy,
+  onSendToMorning,
 }: HeaderProps) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState<string>(String(opening.balance));
@@ -161,6 +169,16 @@ export function Header({
           >
             📄 ייבוא משכורות
           </button>
+          {morningPendingCount > 0 && (
+            <button
+              onClick={onSendToMorning}
+              disabled={morningBusy}
+              className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 rounded text-sm font-medium flex items-center gap-1"
+              title={`שלח למורנינג ${morningPendingCount} חשבוניות שטרם נשלחו`}
+            >
+              {morningBusy ? '⏳ שולח...' : `📤 למורנינג (${morningPendingCount})`}
+            </button>
+          )}
           <ThemeToggle />
           <button
             onClick={() => {

@@ -37,6 +37,7 @@ export async function updateTransactionApi(
       status: 'future' | 'past';
       done: boolean;
       imageUrl: string | null;
+      morningSent: boolean;
     }
   >
 ): Promise<void> {

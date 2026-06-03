@@ -24,6 +24,7 @@ export async function PUT(
       status?: 'future' | 'past';
       done?: boolean;
       imageUrl?: string | null;
+      morningSent?: boolean;
     };
 
     // Read current state to preserve fields not in the payload
@@ -47,6 +48,8 @@ export async function PUT(
       updatedAt: nowIso,
       status: body.status ?? existing.status,
       imageUrl: body.imageUrl !== undefined ? body.imageUrl : existing.imageUrl,
+      morningSent:
+        body.morningSent !== undefined ? body.morningSent : existing.morningSent,
     });
 
     return NextResponse.json({ ok: true });

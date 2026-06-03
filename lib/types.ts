@@ -21,6 +21,8 @@ export interface Transaction {
   updatedAt: string | null; // ISO timestamp of last update
   status: TransactionStatus;
   imageUrl: string | null;  // URL of attached image (if any)
+  /** True once the attached invoice has been sent to Morning (מורנינג). Column L. */
+  morningSent: boolean;
 }
 
 /**
